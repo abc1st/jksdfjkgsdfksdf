@@ -82,6 +82,7 @@ private:
     double speed = 0.0;      // Текущая скорость машины
     double direction = 0.0;  // Направление движения машины
     const double MaxSpeed = 10;
+    HDC hdc;
 public:
     // Конструкторы машины
     Car()
@@ -167,6 +168,17 @@ public:
         // Освобождаем ресурсы кисти
         DeleteObject(carBrush);
         DeleteObject(BlueBrush);
+    }
+    void update() {
+        x += speed * cos(direction * PI / 180.0);
+        y += speed * sin(direction * PI / 180.0);
+        // Проверка, достигла ли машина парковочного места
+        //for (ParkingSpace& space : parkingSpaces) {
+        //    if (distance(x, y, space.x, space.y) < threshold) {
+        //        direction = space.direction;  // Изменение направления на направление парковочного места
+        //        break;
+        //    }
+        //}
     }
 };
 
@@ -629,25 +641,10 @@ public:
 
         // Получаем координаты и размеры парковочных областей
         double xParLeft[10], xParRight[10], yPar[10];
-        double xParallel[3], yParallel[3];
         MidParking90(xParLeft, xParRight, yPar);
 
         // Проверяем, что машина находится внутри пределов парковочной области
         bool isInParkingArea = false;
-
-        // Проверка для параллельных линий
-        for (int i = 0; i < 2; ++i) {
-            if (userCarY >= yParallel[i] - 25 &&
-                userCarY + userCarHeight <=
-                yParallel[i + 1] + PARKING_LINE_INTERVAL) {
-                if (userCarX >= xParallel[i] - 50 &&
-                    userCarX + userCarWidth <=
-                    xParallel[i + 1] + PARKING_LINE_INTERVAL) {
-                    isInParkingArea = true;
-                    break;
-                }
-            }
-        }
 
         // Проверка для линий под углом 90 градусов
         for (int i = 0; i < 9; ++i) {
@@ -700,6 +697,9 @@ public:
         // Отображение машин
         for (const auto& car : cars) {
             car.Draw(hdc);
+        }
+        for (Car& car : cars) {
+            car.update();  // Обновление положения машины
         }
 
         // Отображение пользовательской машины
@@ -906,6 +906,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
     }
     case WM_HSCROLL:
     {
+
         if (GetDlgCtrlID((HWND)lParam) == ID_TRACKBAR)
         {
             int pos = SendMessage((HWND)lParam, TBM_GETPOS, 0, 0);
@@ -914,6 +915,23 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
             COLORREF dayColor = RGB(135, 206, 235);
             COLORREF nightColor = RGB(25, 25, 112);
             COLORREF backgroundColor;
+
+            // Изменение количества машин на парковке
+            int numCars;
+
+            if (pos >= 8 && pos <= 16) {
+                // Меньше машин в период с 8 до 16
+                numCars = MAX_CARS / 2;
+            }
+            else {
+                // Больше машин в остальное время
+                numCars = MAX_CARS - 1;  // Оставляем одно свободное место
+            }
+
+            // Обновление вектора машин
+            cars.resize(numCars);
+            backyard.GenerateRandomCars();
+            //backyard.Draw(hdc);
 
             if (pos <= 12) {
                 // Утро и день
