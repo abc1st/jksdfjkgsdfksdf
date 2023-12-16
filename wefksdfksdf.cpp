@@ -332,13 +332,16 @@ public:
     // Метод для отрисовки дома
     void Draw(HDC hdc) const override {
         // Отображение дома (прямоугольник) с цветом
+
         HBRUSH hBrush = CreateSolidBrush(color);
+        //HBRUSH whiteBrush = CreateSolidBrush(RGB(255,255,255));
         SelectObject(hdc, hBrush);
 
         // Рисуем дом
         Rectangle(hdc, x, y, x + width, y + height);
 
-        // Очищаем ресурсы кисти
+        // SelectObject(hdc,whiteBrush);
+         // Очищаем ресурсы кисти
         DeleteObject(hBrush);
     }
 };
@@ -354,7 +357,7 @@ public:
         : GameObject(startX, startY, obstacleWidth, obstacleHeight) {}
 
 
-   // Метод для отображения препятствия
+    // Метод для отображения препятствия
     void Draw(HDC hdc) const override {
         HBRUSH BlackBrush = CreateSolidBrush(RGB(0, 0, 0));
         SelectObject(hdc, BlackBrush);
@@ -384,7 +387,7 @@ std::vector<Car> cars;  // Создаем вектор для хранения �
 class Backyard : protected ParkingArea {
 private:
     // Создаем игровые объекты
-    
+
     Car userCar;  // Создаем объект пользовательской машины
     ParkingArea parkingArea;  // Создаем объект парковочной области
     Road road;                  // Создаем объект дороги
@@ -392,10 +395,10 @@ private:
     Obstacle obstacle; // Добавляем препятствие
 
     // Координаты домов
-    int startX[5] = { 220, 220, 810, 810 };
-    int endX[5] = {  170, 170, 250, 250 };
-    int startY[5] = { 30, 200, 290, 500 };
-    int endY[5] = {  150, 350, 200, 300 };
+    int startX[5] = { 220, 220, 810, 810 ,810 };
+    int endX[5] = { 170, 170, 250, 250 ,400 };
+    int startY[5] = { 30, 200, 290, 500 ,9 };
+    int endY[5] = { 150, 350, 200, 300,200 };
 
     double userCarAngle = 0.0;  // Добавленная переменная для хранения угла
     // поворота машины пользователя
@@ -414,17 +417,25 @@ public:
         srand(static_cast<unsigned>(time(nullptr)));  // Сбиваем значения
 
         //Генерируем машины
-        GenerateRandomCars();
+        GenerateRandomCars(MAX_CARS);
 
 
         // Добавляем дома
-        for (int i = 0; i < 4; ++i) {
+        for (int i = 0; i < 5; ++i) {
             int randColor = RGB(rand() % 256, rand() % 256,
                 rand() % 256);  // Задаем случайный цвет для дома
-            houses.push_back(
-                House(randColor, &startX[i], &startY[i], &endX[i], &endY[i]));
+            if (i < 4)
+            {
+                houses.push_back(
+                    House(randColor, &startX[i], &startY[i], &endX[i], &endY[i]));
+            }
+            else
+            {
+                randColor = RGB(255, 255, 255);
+                houses.push_back(
+                    House(randColor, &startX[i], &startY[i], &endX[i], &endY[i]));
+            }
         }
-
         //Генерируем возможное препядствие
         GenerateRandomObstacle();
     }
@@ -464,11 +475,10 @@ public:
     }
 
     // Метод для генерации машин на случайных местах
-    void GenerateRandomCars() {
+    void GenerateRandomCars(int numCars) {
         // Задаем константы для настроек генерации машин
         constexpr int MaxCars = 8;
         constexpr int MaxParkingLines = 16;
-        constexpr int MaxParallelLines = 3;
         constexpr int ParkingLineWidth = 50;
         constexpr int ParkingLineHeight = 25;
 
@@ -492,38 +502,39 @@ public:
         int i = 0;
 
         // Цикл генерации машин
-        while (i < MAX_CARS) {
+        while (i < numCars) {
             // Генерация случайного индекса для выбора парковочной линии или
             // параллельной линии
-            int index = rand() % (MaxParkingLines + MaxParallelLines);
+            int index = rand() % (MaxParkingLines);
 
-                // Проверка, что линия еще не занята
-                if (!parked90[index]) {
-                    int xrand90 = rand() % MaxCars;
-                    int yrand90 = rand() % MaxCars;
+            // Проверка, что линия еще не занята
+            if (!parked90[index]) {
+                int xrand90 = rand() % MaxCars;
+                int yrand90 = rand() % MaxCars;
 
-                    double xplace =
-                        (index % 2 == 0) ? xParLeft[xrand90] : xParRight[xrand90];
-                    double yplace = yPar[yrand90];
-                    if (index % 2 == 0) {
-                        // Проверка, если место еще не использовано
-                        if (!usedxParLeft[xrand90] && !usedyParLeft[yrand90]) {
-                            cars.push_back(
-                                Car(xplace - ParkingLineWidth, yplace - ParkingLineHeight));
-                            parked90[index] = true;
-                            i++;
-                            usedxParLeft[xrand90] = true;
-                            usedyParLeft[yrand90] = true;
-                        }
-                    }
-                    else if (!usedxParRight[xrand90] && !usedyParRight[yrand90]) {
+                double xplace =
+                    (index % 2 == 0) ? xParLeft[xrand90] : xParRight[xrand90];
+                double yplace = yPar[yrand90];
+                if (index % 2 == 0) {
+                    // Проверка, если место еще не использовано
+                    if (!usedxParLeft[xrand90] && !usedyParLeft[yrand90]) {
                         cars.push_back(
                             Car(xplace - ParkingLineWidth, yplace - ParkingLineHeight));
                         parked90[index] = true;
                         i++;
-                        usedxParRight[xrand90] = true;
-                        usedyParRight[yrand90] = true;
+                        usedxParLeft[xrand90] = true;
+                        usedyParLeft[yrand90] = true;
                     }
+                }
+                else if (!usedxParRight[xrand90] && !usedyParRight[yrand90]) {
+                    cars.push_back(
+                        Car(xplace - ParkingLineWidth, yplace - ParkingLineHeight));
+                    parked90[index] = true;
+                    
+                    i++;
+                    usedxParRight[xrand90] = true;
+                    usedyParRight[yrand90] = true;
+                }
             }
         }
     }
@@ -535,7 +546,7 @@ public:
         // Шанс появления препятствия
         if (rand() % 100 < 99) { // Настройка шанса генерации препядствия
             obstacle.Reset();
-            int x = rand() % 600;
+            int x = 200+rand() % 600;
             int y = rand() % 600;
             int width = 30; // Ширина препятствия
             int height = 30; // Высота препятствия
@@ -749,7 +760,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     wc.hInstance = hInstance;
     wc.hIcon = LoadIcon(NULL, IDI_APPLICATION);
     wc.hCursor = LoadCursor(NULL, IDC_ARROW);
-    hBackgroundBrush = CreateSolidBrush(RGB(34, 139, 34));
+    hBackgroundBrush = CreateSolidBrush(RGB(135, 206, 235));
     wc.hbrBackground = hBackgroundBrush;
     wc.lpszMenuName = NULL;
     wc.lpszClassName = L"WindowClass";
@@ -803,8 +814,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
     //static bool fullscreen = false;  // Флаг полноэкранного режима
     PAINTSTRUCT ps;
     HDC hdc;
-    int FPS = 144;
-    int SPEED_TIMER_FPS = 144;
 
     switch (uMsg) {
 
@@ -902,6 +911,22 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
             SendMessage(hwndStatic, WM_SETFONT, (WPARAM)hFont, TRUE);
         }
 
+        // Создание статического элемента управления для текста
+        HWND hwndText = CreateWindowEx(
+            0,                               // no extended styles 
+            L"STATIC",                       // class name 
+            L"",                             // window text 
+            WS_CHILD | WS_VISIBLE | SS_CENTER, // style 
+            880, 70,                          // position 
+            300, 40,                         // size 
+            hwnd,                            // parent window 
+            NULL,                            // no menu 
+            GetModuleHandle(NULL),           // instance 
+            NULL                             // no WM_CREATE parameter 
+        );
+
+        // Установка шрифта
+        SendMessage(hwndText, WM_SETFONT, (WPARAM)hFont, TRUE);
         break;
     }
     case WM_HSCROLL:
@@ -920,7 +945,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
             int numCars;
 
             if (pos >= 8 && pos <= 16) {
-                // Меньше машин в период с 8 до 16
+                // Меньше машин в период с 8 до 16s
                 numCars = MAX_CARS / 2;
             }
             else {
@@ -930,7 +955,10 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
 
             // Обновление вектора машин
             cars.resize(numCars);
-            backyard.GenerateRandomCars();
+            backyard.GenerateRandomCars(numCars);
+            hdc = BeginPaint(hwnd, &ps);
+            backyard.Draw(hdc);
+            EndPaint(hwnd, &ps);
             //backyard.Draw(hdc);
 
             if (pos <= 12) {
