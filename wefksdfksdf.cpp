@@ -367,12 +367,12 @@ public:
         return false; // Нет столкновения
     }
 };
-
+std::vector<Car> cars;  // Создаем вектор для хранения данных машин
 // Класс для работы с остальными классами, наследуется от игрового объекта
 class Backyard : protected ParkingArea {
 private:
     // Создаем игровые объекты
-    std::vector<Car> cars;  // Создаем вектор для хранения данных машин
+    
     Car userCar;  // Создаем объект пользовательской машины
     ParkingArea parkingArea;  // Создаем объект парковочной области
     Road road;                  // Создаем объект дороги
@@ -718,6 +718,22 @@ public:
             SetWindowPos(hwnd, HWND_TOP, MAP_LEFT_BORDER, MAP_TOP_BORDER, MAP_RIGHT_BORDER, MAP_BOTTOM_BORDER, SWP_FRAMECHANGED);
         }
     }
+
+    COLORREF LerpColor(COLORREF color1, COLORREF color2, double t) {
+        int r1 = GetRValue(color1);
+        int g1 = GetGValue(color1);
+        int b1 = GetBValue(color1);
+
+        int r2 = GetRValue(color2);
+        int g2 = GetGValue(color2);
+        int b2 = GetBValue(color2);
+
+        int r = r1 + t * (r2 - r1);
+        int g = g1 + t * (g2 - g1);
+        int b = b1 + t * (b2 - b1);
+
+        return RGB(r, g, b);
+    }
 };
 
 
@@ -789,7 +805,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
     HDC hdc;
     int FPS = 144;
     int SPEED_TIMER_FPS = 144;
-    //RECT fpsRect;
 
     switch (uMsg) {
 
@@ -894,7 +909,25 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
         if (GetDlgCtrlID((HWND)lParam) == ID_TRACKBAR)
         {
             int pos = SendMessage((HWND)lParam, TBM_GETPOS, 0, 0);
-            // Обработка нового положения ползунка
+
+            // Изменение фона в зависимости от времени
+            COLORREF dayColor = RGB(135, 206, 235);
+            COLORREF nightColor = RGB(25, 25, 112);
+            COLORREF backgroundColor;
+
+            if (pos <= 12) {
+                // Утро и день
+                double t = pos / 12.0;  // Нормализация положения ползунка от 0 до 1
+                backgroundColor = backyard.LerpColor(nightColor, dayColor, t);
+            }
+            else {
+                // Вечер и ночь
+                double t = (pos - 12) / 12.0;  // Нормализация положения ползунка от 0 до 1
+                backgroundColor = backyard.LerpColor(dayColor, nightColor, t);
+            }
+
+            SetClassLongPtr(hwnd, GCLP_HBRBACKGROUND, (LONG_PTR)CreateSolidBrush(backgroundColor));
+            InvalidateRect(hwnd, NULL, TRUE);
         }
         break;
     }
