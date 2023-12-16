@@ -7,7 +7,8 @@
 #include <limits>
 #include <random>
 #include <vector>
-#include <chrono>
+#include <CommCtrl.h>
+#define ID_TRACKBAR 100
 
 // Константы для параметров мира
 const int MAX_CARS = 10;
@@ -15,7 +16,7 @@ const int PARKING_SPACE_WIDTH = 100;
 const int PARKING_SPACE_HEIGHT = 50;
 const int PARKING_AREA_X = 400;
 const int PARKING_AREA_Y = 0;
-const int PARKING_AREA_WIDTH = 1000;
+const int PARKING_AREA_WIDTH = 800;
 const int PARKING_AREA_HEIGHT = 800;
 const int PARKING_LINE_INTERVAL = 75;
 const int MAP_LEFT_BORDER = 0;
@@ -31,18 +32,8 @@ bool keySPressed = false;
 bool keyAPressed = false;
 bool keyDPressed = false;
 
-// Определение размеров клиентской области
-const int clientWidth = 0;
-const int clientHeight = 0;
-
-
 // Определение полного экрана
 bool fullscreen = false;
-
-// Переменные для подсчета и отслеживания кадров
-std::chrono::steady_clock::time_point startTime = std::chrono::steady_clock::now();
-int frameCount = 0;
-int currentFPS = 0;
 
 // Прототипы функций работы с окном(для коректной работы)
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -123,9 +114,9 @@ public:
             speed = newSpeed * 0.5;
         }
         else {
-        speed = newSpeed;
+            speed = newSpeed;
         }
-        
+
         direction = newDirection;
     }
 
@@ -177,15 +168,6 @@ public:
         DeleteObject(carBrush);
         DeleteObject(BlueBrush);
     }
-        // Метод для получения хитбокса машины
-        RECT GetBoundingBox() const {
-            RECT boundingBox;
-            boundingBox.left = static_cast<long>(x);
-            boundingBox.top = static_cast<long>(y);
-            boundingBox.right = static_cast<long>(x + width);
-            boundingBox.bottom = static_cast<long>(y + height);
-            return boundingBox;
-        }
 };
 
 // Класс парковочной области, наследующийся от игрового объекта
@@ -208,7 +190,7 @@ public:
 
         // Отрисовка линий парковки
         ParkingLine90();
-        ParkingLineParallel();
+
         HBRUSH WhiteBrush = CreateSolidBrush(RGB(255, 255, 255));
         SelectObject(hdc, WhiteBrush);
 
@@ -219,12 +201,6 @@ public:
                 ParkingLineEndX90Left, ParkingLineEndY90[i]);
             Rectangle(hdc, ParkingLineStartX90Right, ParkingLineStartY90[i],
                 ParkingLineEndX90Right, ParkingLineEndY90[i]);
-        }
-
-        // Отрисовка параллельных линий парковки
-        for (int i = 0; i < MaxParkingSpaceParallel; ++i) {
-            Rectangle(hdc, ParkingLineStartXParallel[i], ParkingLineStartYParallel,
-                ParkingLineEndXParallel[i], ParkingLineEndYParallel);
         }
         DeleteObject(WhiteBrush);
     }
@@ -240,12 +216,9 @@ private:
     int ParkingLineEndX90Left = 500;
 
     // Для парковки справа
-    int ParkingLineStartX90Right = 900;
-    int ParkingLineEndX90Right = 1000;
+    int ParkingLineStartX90Right = 700;
+    int ParkingLineEndX90Right = 800;
 
-    // Задаем координаты начальных и конечных линий для паралельной парковки
-    int ParkingLineStartYParallel =750;
-    int ParkingLineEndYParallel = 800;
 
     // Массивы для хранения координат середин парковочного места
 
@@ -253,9 +226,6 @@ private:
     mutable int ParkingLineStartY90[11] = { 1 };
     mutable int ParkingLineEndY90[11] = { 6 };
 
-    // Для координат парковочного места для паралельной парковки
-    mutable int ParkingLineStartXParallel[5] = { 590 };
-    mutable int ParkingLineEndXParallel[5] = { 595 };
 
     // Метод для получения координат начала и конца парковочных линий под углом в
     // 90 градусов
@@ -264,17 +234,6 @@ private:
             ParkingLineStartY90[i] =
                 PARKING_LINE_INTERVAL + ParkingLineStartY90[i - 1];
             ParkingLineEndY90[i] = PARKING_LINE_INTERVAL + ParkingLineEndY90[i - 1];
-        }
-    }
-
-    // Метод для получения координат начала и конца парковочных линий для
-    // паралельной парковки
-    void ParkingLineParallel() const {
-        for (int i = 1; i < MaxParkingSpaceParallel; ++i) {
-            ParkingLineStartXParallel[i] =
-                PARKING_LINE_INTERVAL + 60 + ParkingLineStartXParallel[i - 1];
-            ParkingLineEndXParallel[i] =
-                PARKING_LINE_INTERVAL + 60 + ParkingLineEndXParallel[i - 1];
         }
     }
 
@@ -290,20 +249,6 @@ protected:
             xParLeft[i] = (ParkingLineStartX90Left + ParkingLineEndX90Left) * 0.5;
             yPar[i] = (ParkingLineStartY90[i] + ParkingLineEndY90[i + 1]) * 0.5;
             xParRight[i] = (ParkingLineStartX90Right + ParkingLineEndX90Right) * 0.5;
-        }
-    }
-
-    // Метод для получения координат середины парковочного места для паралельной
-    // парковки
-    void MidParkingParallel(double xParallel[4], double yParallel[4]) const {
-        // Вызываем для получения координат парковочных линий для паралельной
-        // парковки (получаем через середину прямоугольников)
-        ParkingLineParallel();
-        for (int i = 0; i < 3; i++) {
-            xParallel[i] =
-                (ParkingLineStartXParallel[i] + ParkingLineEndXParallel[i + 1]) * 0.5;
-            yParallel[i] =
-                (ParkingLineStartYParallel + ParkingLineEndYParallel - 10) * 0.5;
         }
     }
 };
@@ -390,30 +335,21 @@ public:
 class Obstacle : public GameObject {
 public:
     // Конструктор по умолчанию
-     Obstacle() : GameObject(0, 0, 0, 0) {}
+    Obstacle() : GameObject(0, 0, 0, 0) {}
 
     // Конструктор для создания препятствия с заданными координатами, шириной и высотой
     Obstacle(int startX, int startY, int obstacleWidth, int obstacleHeight)
         : GameObject(startX, startY, obstacleWidth, obstacleHeight) {}
 
-     /*Obstacle& operator=(const Obstacle& obst)
-    {
-         x = obst.GetX();
-         y = obst.GetY();
-         width = obst.GetWidth();
-         height = obst.GetHeight();
-         return *this;
-    }*/
 
-
-    // Метод для отображения препятствия
+   // Метод для отображения препятствия
     void Draw(HDC hdc) const override {
         HBRUSH BlackBrush = CreateSolidBrush(RGB(0, 0, 0));
         SelectObject(hdc, BlackBrush);
         Rectangle(hdc, x, y, x + width, y + height); // Создаем прямоугольник как препядствие 
         DeleteObject(BlackBrush);
     }
-    
+
     void Reset()
     {
         x = -1;
@@ -442,12 +378,12 @@ private:
     Road road;                  // Создаем объект дороги
     std::vector<House> houses;  // Вектор для хранения домов
     Obstacle obstacle; // Добавляем препятствие
-    
+
     // Координаты домов
-    int startX[5] = { 440, 220, 220, 1010, 1010 };
-    int endX[5] = { 470, 170, 170, 450, 450 };
-    int startY[5] = { 810, 30, 200, 50, 400 };
-    int endY[5] = { 100, 150, 350, 200, 400 };
+    int startX[5] = { 220, 220, 810, 810 };
+    int endX[5] = {  170, 170, 250, 250 };
+    int startY[5] = { 30, 200, 290, 500 };
+    int endY[5] = {  150, 350, 200, 300 };
 
     double userCarAngle = 0.0;  // Добавленная переменная для хранения угла
     // поворота машины пользователя
@@ -470,7 +406,7 @@ public:
 
 
         // Добавляем дома
-        for (int i = 0; i < 5; ++i) {
+        for (int i = 0; i < 4; ++i) {
             int randColor = RGB(rand() % 256, rand() % 256,
                 rand() % 256);  // Задаем случайный цвет для дома
             houses.push_back(
@@ -492,7 +428,7 @@ public:
                     car.GetY() + car.GetHeight() > otherCar.GetY()) {
                     return true;  // Коллизия обнаружена
                 }
-               
+
             }
         }
 
@@ -526,7 +462,6 @@ public:
 
         // Массивы для отслеживания состояния парковочных линий и параллельных линий
         bool parked90[MaxParkingLines] = { false };
-        bool parallel[MaxParallelLines] = { false };
 
         // Массивы для хранения координат машин при парковке под углом
         double xParLeft[MaxCars] = {};
@@ -539,19 +474,8 @@ public:
         bool usedyParLeft[MaxCars] = { false };
         bool usedyParRight[MaxCars] = { false };
 
-        // Массивы для хранения координат машин при парковке параллельно
-        double xParallel[MaxParallelLines] = {};
-        double yParallel[MaxParallelLines] = {};
-
-        // Массивы для отслеживания использования координат при парковке параллельно
-        bool usedxParallel[MaxParallelLines] = { false };
-        bool usedyParallel[MaxParallelLines] = { false };
-
         // Генерация координат машин для парковки под углом
         MidParking90(xParLeft, xParRight, yPar);
-
-        // Генерация координат машин для парковки параллельно
-        MidParkingParallel(xParallel, yParallel);
 
         int i = 0;
 
@@ -561,8 +485,6 @@ public:
             // параллельной линии
             int index = rand() % (MaxParkingLines + MaxParallelLines);
 
-            // Проверка, если выбрана парковочная линия
-            if (index < MaxParkingLines) {
                 // Проверка, что линия еще не занята
                 if (!parked90[index]) {
                     int xrand90 = rand() % MaxCars;
@@ -590,36 +512,18 @@ public:
                         usedxParRight[xrand90] = true;
                         usedyParRight[yrand90] = true;
                     }
-                }
-            }
-            // Если выбрана параллельная линия
-            else if (!parallel[index - MaxParkingLines]) {
-                int xrand = rand() % MaxParallelLines;
-                int yrand = rand() % MaxParallelLines;
-
-                double xplace = xParallel[xrand];
-                double yplace = yParallel[yrand];
-
-                // Проверка, если место еще не использовано
-                if (!usedxParallel[xrand]) {
-                    cars.push_back(
-                        Car(xplace - ParkingLineWidth, yplace - ParkingLineHeight));
-                    parallel[index - MaxParkingLines] = true;
-                    i++;
-                    usedxParallel[xrand] = true;
-                }
             }
         }
     }
 
-    
+
     // Метод для генерации случайного препятствия
 
     void GenerateRandomObstacle() {
         // Шанс появления препятствия
         if (rand() % 100 < 99) { // Настройка шанса генерации препядствия
             obstacle.Reset();
-            int x =  rand() % 600;
+            int x = rand() % 600;
             int y = rand() % 600;
             int width = 30; // Ширина препятствия
             int height = 30; // Высота препятствия
@@ -647,9 +551,6 @@ public:
                     return;
                 }
             }
-
-            // Препятствие не пересекается с другими объектами, устанавливаем его
-            //obstacle = newObstacle;
         }
     }
 
@@ -670,7 +571,7 @@ public:
         double angleDiff = targetUserCarAngle - userCarAngle;
 
         // Интерполяция координат и угла для создания эффекта плавного движения
-        double interpolationFactor = 0.1; 
+        double interpolationFactor = 0.1;
         userCarAngle = Lerp(userCarAngle, targetUserCarAngle, interpolationFactor);
         userCar.SetMovement(sqrt(dx * dx + dy * dy), userCarAngle);
 
@@ -730,7 +631,6 @@ public:
         double xParLeft[10], xParRight[10], yPar[10];
         double xParallel[3], yParallel[3];
         MidParking90(xParLeft, xParRight, yPar);
-        MidParkingParallel(xParallel, yParallel);
 
         // Проверяем, что машина находится внутри пределов парковочной области
         bool isInParkingArea = false;
@@ -788,7 +688,7 @@ public:
     }
 
     // Метод для отображения
-    void Draw(HDC hdc) const  {
+    void Draw(HDC hdc) const {
         parkingArea.Draw(hdc);  // Отображение парковочной площадки
         road.Draw(hdc);  // Отображение дорог
         obstacle.Draw(hdc);
@@ -802,12 +702,8 @@ public:
             car.Draw(hdc);
         }
 
-        // Отображение препятствия
-        //obstacle.Draw(hdc);
-
         // Отображение пользовательской машины
         userCar.Draw(hdc);
-       // DrawHitbox(hdc);
     }
 
     void ToggleFullscreen(HWND hwnd) {
@@ -822,13 +718,6 @@ public:
             SetWindowPos(hwnd, HWND_TOP, MAP_LEFT_BORDER, MAP_TOP_BORDER, MAP_RIGHT_BORDER, MAP_BOTTOM_BORDER, SWP_FRAMECHANGED);
         }
     }
-    // Метод для отображения хитбокса машины (для отладки)
-    void DrawHitbox(HDC hdc) const {
-        // Отобразить хитбокс машины 
-        RECT hitboxRect = { userCar.GetX(), userCar.GetY(), userCar.GetX() + userCar.GetWidth(), userCar.GetY() + userCar.GetHeight() };
-        DrawFocusRect(hdc, &hitboxRect);
-    }
-
 };
 
 
@@ -903,7 +792,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
     //RECT fpsRect;
 
     switch (uMsg) {
-    
+
     case WM_KEYUP:
         switch (wParam) {
         case 'W':
@@ -943,15 +832,72 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
         break;
 
     case WM_SIZE:
-        // Обработка изменения размеров окна
-        //clientWidth = LOWORD(lParam);
-        //clientHeight = HIWORD(lParam);
         break;
 
     case WM_CREATE:
-        // Инициализация объектов, создание таймеров и прочее
-        break;
+    {
+        // Создание ползунка времени
+        HWND hwndTrack = CreateWindowEx(
+            0,                               // no extended styles 
+            TRACKBAR_CLASS,                   // class name 
+            L"Trackbar Control",              // title (caption) 
+            WS_CHILD | WS_VISIBLE | TBS_AUTOTICKS | TBS_HORZ, // style 
+            850, 10,                          // position 
+            300, 30,                         // size 
+            hwnd,                            // parent window 
+            (HMENU)ID_TRACKBAR,              // control identifier 
+            GetModuleHandle(NULL),           // instance 
+            NULL                             // no WM_CREATE parameter 
+        );
 
+        // Установка диапазона и позиции ползунка
+        SendMessage(hwndTrack, TBM_SETRANGE,
+            (WPARAM)TRUE,                    // redraw flag 
+            (LPARAM)MAKELONG(0, 24));        // min. & max. positions 
+
+        SendMessage(hwndTrack, TBM_SETPOS,
+            (WPARAM)TRUE,                    // redraw flag 
+            (LPARAM)12);                     // current position 
+
+        // Создание шрифта
+        HFONT hFont = CreateFont(
+            10, 0, 0, 0, FW_DONTCARE, FALSE, FALSE, FALSE, DEFAULT_CHARSET,
+            OUT_OUTLINE_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY,
+            VARIABLE_PITCH, TEXT("Arial"));
+
+        for (int i = 0; i <= 24; i += 6) {
+            WCHAR str[5];
+            wsprintf(str, L"%d", i);
+
+            // Объявление и создание статического элемента управления
+            HWND hwndStatic = CreateWindowEx(
+                0,                               // no extended styles 
+                L"STATIC",                       // class name 
+                str,                             // window text 
+                WS_CHILD | WS_VISIBLE | SS_CENTER, // style 
+                850 + i * (155 / 12), 40,         // position 
+                10, 10,                          // size 
+                hwnd,                            // parent window 
+                NULL,                            // no menu 
+                GetModuleHandle(NULL),           // instance 
+                NULL                             // no WM_CREATE parameter 
+            );
+
+            // Установка шрифта
+            SendMessage(hwndStatic, WM_SETFONT, (WPARAM)hFont, TRUE);
+        }
+
+        break;
+    }
+    case WM_HSCROLL:
+    {
+        if (GetDlgCtrlID((HWND)lParam) == ID_TRACKBAR)
+        {
+            int pos = SendMessage((HWND)lParam, TBM_GETPOS, 0, 0);
+            // Обработка нового положения ползунка
+        }
+        break;
+    }
     case WM_CLOSE:
         DestroyWindow(hwnd);  // Закрытие окна при нажатии кнопки закрытия
         break;
