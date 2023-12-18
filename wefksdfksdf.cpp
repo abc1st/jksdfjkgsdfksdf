@@ -84,6 +84,9 @@ private:
     const double MaxSpeed = 10;
     HDC hdc;
     bool isParking = false;
+    bool isParked = false;  // Добавляем переменную для определения, припаркована машина или нет
+    double targetParkingX;
+    double targetParkingY;
 public:
     // Конструкторы машины
     Car()
@@ -99,12 +102,29 @@ public:
         color(RGB(0, 255, 0)),
         speed(0),
         direction(0) {}
-
+    void Park() {
+        isParked = true;
+    }
+    void SetTargetParkingPosition(double x, double y) {
+        targetParkingX = x;
+        targetParkingY = y;
+    }
     // Метод для перемещения машины
-    void Move(int newX, int newY, double newAngle) {
-        x = newX;
-        y = newY;
-        angle = newAngle;
+    void Move() {
+        // Если машина не припаркована, двигаемся к целевой парковочной позиции
+        if (!isParked) {
+            // Рассчитываем направление к целевой парковочной позиции
+            double direction = atan2(targetParkingY - y, targetParkingX - x);
+
+            // Рассчитываем новые координаты
+            x += cos(direction) * speed;
+            y += sin(direction) * speed;
+
+            // Если машина достигла целевой парковочной позиции, паркуем машину
+            if (abs(x - targetParkingX) < speed && abs(y - targetParkingY) < speed) {
+                Park();
+            }
+        }
     }
 
     // Метод для установки цвета машины
@@ -586,65 +606,65 @@ public:
         }
     }
 
-    // Метод для движения машины пользователя
-    void MoveUserCar(int dx, int dy) {
-        // Запоминаем предыдущие координаты машины пользователя
-        int prevX = userCar.GetX();
-        int prevY = userCar.GetY();
+    //// Метод для движения машины пользователя
+    //void MoveUserCar(int dx, int dy) {
+    //    // Запоминаем предыдущие координаты машины пользователя
+    //    int prevX = userCar.GetX();
+    //    int prevY = userCar.GetY();
 
-        // Вычисляем угол направления движения курсора
-        double angle = atan2(dy, dx);
-        double targetAngle = atan2(dy, dx);
+    //    // Вычисляем угол направления движения курсора
+    //    double angle = atan2(dy, dx);
+    //    double targetAngle = atan2(dy, dx);
 
-        // Устанавливаем целевой угол поворота машины пользователя
-        targetUserCarAngle = angle;
+    //    // Устанавливаем целевой угол поворота машины пользователя
+    //    targetUserCarAngle = angle;
 
-        // Вычисляем разницу между текущим и целевым углом
-        double angleDiff = targetUserCarAngle - userCarAngle;
+    //    // Вычисляем разницу между текущим и целевым углом
+    //    double angleDiff = targetUserCarAngle - userCarAngle;
 
-        // Интерполяция координат и угла для создания эффекта плавного движения
-        double interpolationFactor = 0.1;
-        userCarAngle = Lerp(userCarAngle, targetUserCarAngle, interpolationFactor);
-        userCar.SetMovement(sqrt(dx * dx + dy * dy), userCarAngle);
+    //    // Интерполяция координат и угла для создания эффекта плавного движения
+    //    double interpolationFactor = 0.1;
+    //    userCarAngle = Lerp(userCarAngle, targetUserCarAngle, interpolationFactor);
+    //    userCar.SetMovement(sqrt(dx * dx + dy * dy), userCarAngle);
 
-        // Обновляем координаты машины пользователя с учетом интерполяции
-        double newX = Lerp(prevX, prevX + dx, interpolationFactor);
-        double newY = Lerp(prevY, prevY + dy, interpolationFactor);
-        userCar.Move(static_cast<int>(newX), static_cast<int>(newY), userCarAngle);
+    //    // Обновляем координаты машины пользователя с учетом интерполяции
+    //    double newX = Lerp(prevX, prevX + dx, interpolationFactor);
+    //    double newY = Lerp(prevY, prevY + dy, interpolationFactor);
+    //    userCar.Move(static_cast<int>(newX), static_cast<int>(newY), userCarAngle);
 
-        // Устанавливаем скорость и угол движения машины пользователя
-        userCar.SetMovement(sqrt(dx * dx + dy * dy), angle);
+    //    // Устанавливаем скорость и угол движения машины пользователя
+    //    userCar.SetMovement(sqrt(dx * dx + dy * dy), angle);
 
-        // Поворачиваем машину в движении с учетом скорости вращения
-        userCar.RotateInMotion(userCarRotationSpeed);
-        // Перемещаем машину пользователя
-        userCar.Move(prevX + dx, prevY + dy, userCarAngle);
+    //    // Поворачиваем машину в движении с учетом скорости вращения
+    //    userCar.RotateInMotion(userCarRotationSpeed);
+    //    // Перемещаем машину пользователя
+    //    userCar.Move(prevX + dx, prevY + dy, userCarAngle);
 
-        // Проверка на выход за границы карты и возврат на предыдущие координаты при
-        // выходе
-        if (userCar.GetX() < MAP_LEFT_BORDER ||
-            userCar.GetX() + userCar.GetWidth() > MAP_RIGHT_BORDER ||
-            userCar.GetY() < MAP_TOP_BORDER ||
-            userCar.GetY() + userCar.GetHeight() > MAP_BOTTOM_BORDER) {
-            userCar.Move(prevX, prevY, userCarAngle);
-        }
-        // Проверка на столкновение с препятствием
-        if (obstacle.IsCollision(userCar)) {
-            userCar.SetColor(RGB(255, 0, 0));
-            //obstacle.Reset();
-        }
-        // Проверка на наличие парковки и подсветка цвета машины
-        if (!isParking) {
-            // Проверка корректности парковки и установка цвета машины
-            userCar.SetColor(CheckCorrectParking() ? RGB(0, 0, 0) : RGB(0, 255, 0));
-        }
+    //    // Проверка на выход за границы карты и возврат на предыдущие координаты при
+    //    // выходе
+    //    if (userCar.GetX() < MAP_LEFT_BORDER ||
+    //        userCar.GetX() + userCar.GetWidth() > MAP_RIGHT_BORDER ||
+    //        userCar.GetY() < MAP_TOP_BORDER ||
+    //        userCar.GetY() + userCar.GetHeight() > MAP_BOTTOM_BORDER) {
+    //        userCar.Move(prevX, prevY, userCarAngle);
+    //    }
+    //    // Проверка на столкновение с препятствием
+    //    if (obstacle.IsCollision(userCar)) {
+    //        userCar.SetColor(RGB(255, 0, 0));
+    //        //obstacle.Reset();
+    //    }
+    //    // Проверка на наличие парковки и подсветка цвета машины
+    //    if (!isParking) {
+    //        // Проверка корректности парковки и установка цвета машины
+    //        userCar.SetColor(CheckCorrectParking() ? RGB(0, 0, 0) : RGB(0, 255, 0));
+    //    }
 
-        // Проверка на столкновение с другими машинами и возврат на предыдущие
-        // координаты при столкновении
-        if (CheckCollision(userCar)) {
-            userCar.Move(prevX, prevY, userCarAngle);
-        }
-    }
+    //    // Проверка на столкновение с другими машинами и возврат на предыдущие
+    //    // координаты при столкновении
+    //    if (CheckCollision(userCar)) {
+    //        userCar.Move(prevX, prevY, userCarAngle);
+    //    }
+    //}
 
     // Функция линейной интерполяции
     double Lerp(double a, double b, double t) {
@@ -689,20 +709,7 @@ public:
         return false;  // Парковка не корректна
     }
 
-    // Метод для обработки нажатия клавиш
-    void ProcessKeyPress() {
-        // Инициализация смещений
-        int dx = 0, dy = 0;
 
-        // Проверка состояния клавиш и обновление смещений
-        if (GetAsyncKeyState('W') & 0x8000) dy -= 10;
-        if (GetAsyncKeyState('S') & 0x8000) dy += 10;
-        if (GetAsyncKeyState('A') & 0x8000) dx -= 10;
-        if (GetAsyncKeyState('D') & 0x8000) dx += 10;
-
-        // Вызов метода для движения машины пользователя с учетом смещений
-        MoveUserCar(dx, dy);
-    }
 
     // Метод для отображения
     void Draw(HDC hdc) const {
@@ -825,25 +832,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
     bool isSliderMoving = false;
     switch (uMsg) {
 
-    case WM_KEYUP:
-        switch (wParam) {
-        case 'W':
-            keyWPressed = false;
-            break;
-
-        case 'S':
-            keySPressed = false;
-            break;
-
-        case 'A':
-            keyAPressed = false;
-            break;
-
-        case 'D':
-            keyDPressed = false;
-            break;
-        }
-        break;
 
     case WM_KEYDOWN:
         if (wParam == VK_F11) {
@@ -851,9 +839,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
             InvalidateRect(hwnd, NULL, TRUE);
             break;
         }
-        backyard.ProcessKeyPress();  // Вызываем отдельный метод для обработки
-        // нажатий клавиш
-        //needRedraw = true;  // Устанавливаем флаг обновления окна
         InvalidateRect(hwnd, NULL, TRUE);
         break;
     case WM_PAINT:
