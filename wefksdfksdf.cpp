@@ -173,23 +173,20 @@ public:
     void update() {
         x += speed * cos(direction * PI / 180.0);
         y += speed * sin(direction * PI / 180.0);
-        // Проверка, достигла ли машина парковочного места
-        //for (ParkingSpace& space : parkingSpaces) {
-        //    if (distance(x, y, space.x, space.y) < threshold) {
-        //        direction = space.direction;  // Изменение направления на направление парковочного места
-        //        break;
-        //    }
-        //}
     }
     bool GetisParking()
     {
         return isParking;
     }
+    void SetisParking(bool parking)
+    {
+        isParking = parking;
+    }
     void LeaveParking() {
-
+        update();
     }
     void EnterParking() {
-
+        update();
     }
 };
 
@@ -535,6 +532,7 @@ public:
                         i++;
                         usedxParLeft[xrand90] = true;
                         usedyParLeft[yrand90] = true;
+                        
                     }
                 }
                 else if (!usedxParRight[xrand90] && !usedyParRight[yrand90]) {
@@ -720,9 +718,7 @@ public:
         for (const auto& car : cars) {
             car.Draw(hdc);
         }
-        for (Car& car : cars) {
-            car.update();  // Обновление положения машины
-        }
+        
 
         // Отображение пользовательской машины
         //userCar.Draw(hdc);
@@ -802,7 +798,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     }
 
     // Отображение окна
-
+    SetTimer(hwnd, 1, 1000, NULL); // устанавливает таймер с идентификатором 1, который срабатывает каждую секунду
     ShowWindow(hwnd, nCmdShow);
     UpdateWindow(hwnd);
 
