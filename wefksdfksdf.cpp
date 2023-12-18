@@ -83,6 +83,7 @@ private:
     double direction = 0.0;  // Направление движения машины
     const double MaxSpeed = 10;
     HDC hdc;
+    bool isParking = false;
 public:
     // Конструкторы машины
     Car()
@@ -180,9 +181,15 @@ public:
         //    }
         //}
     }
-    bool isParking()const
+    bool GetisParking()
     {
         return isParking;
+    }
+    void LeaveParking() {
+
+    }
+    void EnterParking() {
+
     }
 };
 
@@ -996,7 +1003,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
             int randomCarIndex = rand() % MAX_CARS;
 
             // Проверяем, находится ли машина на парковке
-            if (cars[randomCarIndex].isParking)
+            if (cars[randomCarIndex].GetisParking())
             {
                 // Если машина на парковке, она выезжает
                 cars[randomCarIndex].LeaveParking();
