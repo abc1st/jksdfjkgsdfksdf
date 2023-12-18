@@ -180,6 +180,10 @@ public:
         //    }
         //}
     }
+    bool isParking()const
+    {
+        return isParking;
+    }
 };
 
 // Класс парковочной области, наследующийся от игрового объекта
@@ -714,7 +718,7 @@ public:
         }
 
         // Отображение пользовательской машины
-        userCar.Draw(hdc);
+        //userCar.Draw(hdc);
     }
 
     void ToggleFullscreen(HWND hwnd) {
@@ -745,6 +749,7 @@ public:
 
         return RGB(r, g, b);
     }
+
 };
 
 
@@ -814,7 +819,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
     //static bool fullscreen = false;  // Флаг полноэкранного режима
     PAINTSTRUCT ps;
     HDC hdc;
-
+    bool isSliderMoving = false;
     switch (uMsg) {
 
     case WM_KEYUP:
@@ -935,6 +940,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
         if (GetDlgCtrlID((HWND)lParam) == ID_TRACKBAR)
         {
             int pos = SendMessage((HWND)lParam, TBM_GETPOS, 0, 0);
+            isSliderMoving = true;
 
             // Изменение фона в зависимости от времени
             COLORREF dayColor = RGB(135, 206, 235);
@@ -974,6 +980,32 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
 
             SetClassLongPtr(hwnd, GCLP_HBRBACKGROUND, (LONG_PTR)CreateSolidBrush(backgroundColor));
             InvalidateRect(hwnd, NULL, TRUE);
+        }
+        else {
+            isSliderMoving = false;
+        }
+        break;
+    }
+
+    case WM_TIMER:
+    {
+        // Проверяем, двигается ли ползунок
+        if (!isSliderMoving)
+        {
+            // Генерируем случайное число от 0 до MAX_CARS
+            int randomCarIndex = rand() % MAX_CARS;
+
+            // Проверяем, находится ли машина на парковке
+            if (cars[randomCarIndex].isParking)
+            {
+                // Если машина на парковке, она выезжает
+                cars[randomCarIndex].LeaveParking();
+            }
+            else
+            {
+                // Если машина не на парковке, она въезжает
+                cars[randomCarIndex].EnterParking();
+            }
         }
         break;
     }
