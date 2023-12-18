@@ -467,7 +467,42 @@ public:
         //Генерируем возможное препядствие
         GenerateRandomObstacle();
     }
-
+    void GenerateCarsAtTopLeft(int numCars) {
+        for (int i = 0; i < numCars; ++i) {
+            cars.push_back(Car(0, 0));  // Создаем машину в левом верхнем углу
+        }
+    }
+    void MoveCarsToFreeParkingSpaces() {
+        for (auto& car : cars) {
+            if (!car.isParked) {
+                for (const auto& parkingSpace : parkingSpaces) {
+                    if (!parkingSpace.isOccupied) {
+                        car.SetTargetParkingPosition(parkingSpace.x, parkingSpace.y);
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    void CheckCarCollisions() {
+        for (auto& car : cars) {
+            if (obstacle.IsCollision(car)) {
+                // Измените направление машины
+            }
+            for (auto& otherCar : cars) {
+                if (&car != &otherCar && car.IsCollision(otherCar)) {
+                    // Измените направление машины
+                }
+            }
+        }
+    }
+    void MoveParkedCarsToBottomLeft() {
+        for (auto& car : cars) {
+            if (car.isParked) {
+                car.SetTargetParkingPosition(0, screenHeight);  // screenHeight - высота экрана
+            }
+        }
+    }
     // Метод для проверки столкновений с объектами
     bool CheckCollision(const Car& car) const {
         // Проверяем коллизию с каждой из машин во дворе
@@ -982,17 +1017,18 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
         {
             // Генерируем случайное число от 0 до MAX_CARS
             int randomCarIndex = rand() % MAX_CARS;
-
+            backyard.GenerateCarsAtTopLeft(numCars);
             // Проверяем, находится ли машина на парковке
             if (cars[randomCarIndex].GetisParking())
             {
                 // Если машина на парковке, она выезжает
-                cars[randomCarIndex].LeaveParking();
+                backyard.MoveParkedCarsToBottomLeft();
             }
             else
             {
                 // Если машина не на парковке, она въезжает
-                cars[randomCarIndex].EnterParking();
+                backyard.MoveCarsToFreeParkingSpaces();
+                backyard.CheckCarCollisions();
             }
         }
         break;
