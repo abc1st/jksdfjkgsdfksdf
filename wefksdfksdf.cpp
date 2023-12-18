@@ -84,7 +84,7 @@ private:
     const double MaxSpeed = 10;
     HDC hdc;
     bool isParking = false;
-    bool isParked = false;  // Добавляем переменную для определения, припаркована машина или нет
+    
     double targetParkingX;
     double targetParkingY;
 public:
@@ -102,6 +102,18 @@ public:
         color(RGB(0, 255, 0)),
         speed(0),
         direction(0) {}
+    bool isParked = false;  // Добавляем переменную для определения, припаркована машина или нет
+    // Метод для проверки столкновения с другим объектом
+    bool IsCollision(const GameObject& other) const {
+        // Проверяем столкновение с другим объектом
+        if (x < other.GetX() + other.GetWidth() &&
+            x + width > other.GetX() &&
+            y < other.GetY() + other.GetHeight() &&
+            y + height > other.GetY()) {
+            return true; // Столкновение обнаружено
+        }
+        return false; // Нет столкновения
+    }
     void Park() {
         isParked = true;
     }
@@ -437,7 +449,7 @@ private:
     double maxRotationAngle = 0.1;  // Максимальный угол поворота за один кадр
 
     bool isParking = false;  // Стоит ли машина на парковочном месте
-
+    int screenHeight = 800;  // Пример объявления screenHeight
 
 public:
     // Конструктор двора
@@ -475,9 +487,9 @@ public:
     void MoveCarsToFreeParkingSpaces() {
         for (auto& car : cars) {
             if (!car.isParked) {
-                for (const auto& parkingSpace : parkingSpaces) {
-                    if (!parkingSpace.isOccupied) {
-                        car.SetTargetParkingPosition(parkingSpace.x, parkingSpace.y);
+                for (const auto& parkingArea : parkingArea) {
+                    if (!parkingArea.isOccupied) {
+                        car.SetTargetParkingPosition(parkingArea.x, parkingArea.y);
                         break;
                     }
                 }
