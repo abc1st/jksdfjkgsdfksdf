@@ -84,7 +84,8 @@ private:
     const double MaxSpeed = 10;
     HDC hdc;
     bool isParking = false;
-    
+    std::vector<Car>::iterator begin() { return cars.begin(); }
+    std::vector<Car>::iterator end() { return cars.end(); }
     double targetParkingX;
     double targetParkingY;
 public:
@@ -1029,6 +1030,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
         {
             // Генерируем случайное число от 0 до MAX_CARS
             int randomCarIndex = rand() % MAX_CARS;
+            int numCars = 1;
             backyard.GenerateCarsAtTopLeft(numCars);
             // Проверяем, находится ли машина на парковке
             if (cars[randomCarIndex].GetisParking())
