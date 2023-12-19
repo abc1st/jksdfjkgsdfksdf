@@ -12,7 +12,7 @@ const int MAP_RIGHT_BORDER = 1280;
 const int MAP_TOP_BORDER = 0;
 const int MAP_BOTTOM_BORDER = 800;
 // Максимально возможное количество машин
-int MAX_CARS = 5;
+int MAX_CARS = 10;
 
 
 // Прототип функции работы с окном(для коректной работы)
@@ -98,6 +98,16 @@ public:
         // Получаем координаты центра машины
         int centerX = x + width / 2;
         int centerY = y + height / 2;
+        // Поворачиваем координатные оси для отрисовки повернутой машины
+        SetGraphicsMode(hdc, GM_ADVANCED);
+        XFORM xForm;
+        xForm.eM11 = static_cast<FLOAT>(cos(angle));
+        xForm.eM12 = static_cast<FLOAT>(sin(angle));
+        xForm.eM21 = static_cast<FLOAT>(-sin(angle));
+        xForm.eM22 = static_cast<FLOAT>(cos(angle));
+        xForm.eDx = static_cast<FLOAT>(centerX);
+        xForm.eDy = static_cast<FLOAT>(centerY);
+        SetWorldTransform(hdc, &xForm);
         //Отрисовка машины
         //Rectangle(hdc, x, y, width, height);
         // Отрисовка прямоугольника, представляющего машину
@@ -109,14 +119,16 @@ public:
         //Rectangle(hdc, x, y, width, height);//Пробные значения
         Rectangle(hdc, x + 60 - centerX, y + 10 - centerY, x + 70 - centerX,
             y + 40 - centerY);
-
+        // Сбрасываем трансформацию
+        SetGraphicsMode(hdc, GM_COMPATIBLE);
+        ModifyWorldTransform(hdc, nullptr, MWT_IDENTITY);
         DeleteObject(ColorBrush);
         DeleteObject(WindowBrush);
     }
 
 };
 
-std::vector<Car>cars;
+
 
 class ParkingArea : public GameObject {
 private:
@@ -127,7 +139,7 @@ private:
 
 
     //Количество парковочных мест
-    const int MaxParkingSpace = 8;
+    const int MaxParkingSpace = 9;
 
     // Начальные координаты для парковки слева
     int ParkingLineStartXLeft = 400;
@@ -303,6 +315,8 @@ public:
     }
 };
 
+std::vector<Car>cars;
+
 class Yard : protected ParkingArea {
 private:
   
@@ -322,11 +336,9 @@ private:
 public:
     Yard() {
         srand(static_cast<unsigned>(time(nullptr)));  // Сбиваем значения
-
+       
         //Генерируем машины
         GenerateRandomCars(MAX_CARS);
-
-        
 
         //Добавляем дома
         for (int i = 0; i <5; i++) {
@@ -383,28 +395,39 @@ public:
                         {
                             cars.push_back(
                                 Car(xplace - ParkingLineWidth, yplace - ParkingLineHeight));;
-                            cars[i].SetisParking(true);
-                            cars[i].SetColor(randColor);
-                            parked[index] = true;
-                            usedxParLeft[xrand] = true;
-                            usedyParLeft[yrand] = true;
-                            i++;
+                            if (!cars[i].IsCollision(obstacle)) {
+                                cars[i].SetisParking(true);
+                                cars[i].SetColor(randColor);
+                                parked[index] = true;
+                                usedxParLeft[xrand] = true;
+                                usedyParLeft[yrand] = true;
+                                i++;
+                            }
+                            else {
+                                cars.pop_back();
+                            }
+                            
 
                         }
                     }
-                    else {
+                    else 
                         if (!usedxParRight[xrand] && !usedyParRight[yrand])
                         {
                             cars.push_back(
                                 Car(xplace - ParkingLineWidth, yplace - ParkingLineHeight));
-                            cars[i].SetisParking(true);
-                            cars[i].SetColor(randColor);
-                            parked[index] = true;
-                            usedxParRight[xrand] = true;
-                            usedyParRight[yrand] = true;
-                            i++;
+                            if (!cars[i].IsCollision(obstacle)) {
+                                cars[i].SetisParking(true);
+                                cars[i].SetColor(randColor);
+                                parked[index] = true;
+                                usedxParRight[xrand] = true;
+                                usedyParRight[yrand] = true;
+                                i++;
+                            }
+                            else {
+                                cars.pop_back();
+                            }
                         }
-                    }
+                    
                 }
             }
         }
