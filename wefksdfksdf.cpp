@@ -4,7 +4,7 @@
 #include<vector>
 #include<time.h>
 #include <CommCtrl.h>
-
+#define ID_TRACKBAR 101
 // Определение полного экрана
 bool fullscreen = false;
 const int MAP_LEFT_BORDER = 0;
@@ -502,11 +502,16 @@ public:
         }
         return false;
     }
-    void GenerateCarsAtTopLeft(int number) {
+    void GenerateCarAtTopLeft(int number) {
         cars[number].SetX(0);
         cars[number].SetY(0);
     }
+    void Draw(HDC hdc)const  {
 
+    }
+    void MoveCar(int number) {
+
+    }
     // --------------------------------------------------------------------------------------------------------
     void ToggleFullscreen(HWND hwnd) {
         fullscreen = !fullscreen;
