@@ -12,9 +12,8 @@ const int MAP_RIGHT_BORDER = 1280;
 const int MAP_TOP_BORDER = 0;
 const int MAP_BOTTOM_BORDER = 800;
 // Максимально возможное количество машин
-int MAX_CARS = 16;
-int SizeCars = 0; //Сколько машин
-Car cars[16];  // Массив для хранения данных машин
+int MAX_CARS = 5;
+
 
 // Прототип функции работы с окном(для коректной работы)
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -62,7 +61,11 @@ private:
     bool isParking = false;
 public:
 
-    Car() :GameObject(0, 0, 100, 100) {};
+    Car() 
+        :GameObject(0, 0, 100, 50), angle(0), color(RGB(0,255,0)) {};
+    Car(int startX, int startY)
+        :GameObject(startX, startY, 100, 50),angle(0),
+        color(RGB(0, 255, 0)) {}
 
     void SetisParking(bool Parking) { isParking = Parking; }
     
@@ -92,19 +95,28 @@ public:
 
         //Пока не понятно как отривовыветь угол поворота машины
         // Добавить потом
-        
+        // Получаем координаты центра машины
+        int centerX = x + width / 2;
+        int centerY = y + height / 2;
         //Отрисовка машины
-        Rectangle(hdc, x, y, width, height);
+        //Rectangle(hdc, x, y, width, height);
+        // Отрисовка прямоугольника, представляющего машину
+        Rectangle(hdc, x - centerX, y - centerY, x - centerX + width,
+            y - centerY + height);
 
         // Отрисовка окон
         SelectObject(hdc, WindowBrush);
-        Rectangle(hdc, x + 60, y + 10, width + 70, height + 40);//Пробные значения
+        //Rectangle(hdc, x, y, width, height);//Пробные значения
+        Rectangle(hdc, x + 60 - centerX, y + 10 - centerY, x + 70 - centerX,
+            y + 40 - centerY);
 
         DeleteObject(ColorBrush);
         DeleteObject(WindowBrush);
     }
 
 };
+
+std::vector<Car>cars;
 
 class ParkingArea : public GameObject {
 private:
@@ -314,8 +326,7 @@ public:
         //Генерируем машины
         GenerateRandomCars(MAX_CARS);
 
-        //Генерируем возможное препядствие
-        GenerateRandomObstacle();
+        
 
         //Добавляем дома
         for (int i = 0; i <5; i++) {
@@ -329,6 +340,8 @@ public:
                 houses.push_back(House(startX[i],startY[i],startWidth[i],startHeight[i],randColor));
             }
         }
+        //Генерируем возможное препядствие
+        GenerateRandomObstacle();
     }
 
     // Метод для генерации машин на случайных местах
@@ -349,46 +362,48 @@ public:
         bool usedxParRight[MaxCars] = { false };
         bool usedyParLeft[MaxCars] = { false };
         bool usedyParRight[MaxCars] = { false };
-
+        bool parked[MaxParkingLines] = { false };
         // Получение координат середины паркоыочных мест
         MidParking(xParLeft, xParRight, yPar);
 
-        SizeCars = 0;
-
+        int i = 0;
         //Цикл для генерации машин
-        while (SizeCars < numCars)
+        while (i < numCars)
         {
             int index = rand() % MaxParkingLines - 1;
             int randColor = RGB(rand() % 255, rand() % 255, rand() % 255);
-            if (!cars[SizeCars].GetisParking())
-            {
-                int xrand = rand() % MaxCars;
-                int yrand = rand() % MaxCars;
-                double xplace = (index % 2 == 0) ? xParLeft[xrand] : xParRight[xrand];
-                double yplace = yPar[yrand];
-                if (index % 2 == 0) {
-                    if (!usedxParLeft[xrand] && !usedyParLeft[yrand])
-                    {
-                        cars[SizeCars].SetX(xplace - ParkingLineWidth);
-                        cars[SizeCars].SetY(yplace - ParkingLineHeight);
-                        cars[SizeCars].SetisParking(true);
-                        cars[SizeCars].SetColor(randColor);
-                        usedxParLeft[xrand] = true;
-                        usedyParLeft[yrand] = true;
-                        SizeCars++;
+            if (!parked[index]) {
+                {
+                    int xrand = rand() % MaxCars;
+                    int yrand = rand() % MaxCars;
+                    double xplace = (index % 2 == 0) ? xParLeft[xrand] : xParRight[xrand];
+                    double yplace = yPar[yrand];
+                    if (index % 2 == 0) {
+                        if (!usedxParLeft[xrand] && !usedyParLeft[yrand])
+                        {
+                            cars.push_back(
+                                Car(xplace - ParkingLineWidth, yplace - ParkingLineHeight));;
+                            cars[i].SetisParking(true);
+                            cars[i].SetColor(randColor);
+                            parked[index] = true;
+                            usedxParLeft[xrand] = true;
+                            usedyParLeft[yrand] = true;
+                            i++;
 
+                        }
                     }
-                }
-                else {
-                    if (!usedxParRight[xrand] && !usedyParRight[yrand])
-                    {
-                        cars[SizeCars].SetX(xplace - ParkingLineWidth);
-                        cars[SizeCars].SetY(yplace - ParkingLineHeight);
-                        cars[SizeCars].SetisParking(true);
-                        cars[SizeCars].SetColor(randColor);
-                        usedxParRight[xrand] = true;
-                        usedyParRight[yrand] = true;
-                        SizeCars++;
+                    else {
+                        if (!usedxParRight[xrand] && !usedyParRight[yrand])
+                        {
+                            cars.push_back(
+                                Car(xplace - ParkingLineWidth, yplace - ParkingLineHeight));
+                            cars[i].SetisParking(true);
+                            cars[i].SetColor(randColor);
+                            parked[index] = true;
+                            usedxParRight[xrand] = true;
+                            usedyParRight[yrand] = true;
+                            i++;
+                        }
                     }
                 }
             }
@@ -409,9 +424,9 @@ public:
             obstacle.SetWidth(width);
             obstacle.SetHeight(height);
             // Проверка на столкновение с машинами
-            for (int i=0;i<SizeCars;i++)
+            for (const auto&car:cars)
             {
-                if (obstacle.IsCollision(cars[i]))
+                if (obstacle.IsCollision(car))
                 {
                     GenerateRandomObstacle();
                     return;
@@ -462,7 +477,7 @@ public:
     }
 
     // Проверка на правильность парковки
-    bool CheckCorrectParking(int number)const  {
+    bool CheckCorrectParking(int number)const {
         // Получаем координаты машины
         double CarX = cars[number].GetX();
         double CarY = cars[number].GetY();
@@ -491,23 +506,31 @@ public:
                 }
             }
         }
-        for (int i = 0; i < SizeCars; i++)
+        for (const auto& car : cars)
         {
-            if (i == number) {}
-            else {
-                if (isInParkingArea && !CheckCollision(cars[i])) {
-                    return true;
-                }
+            if (isInParkingArea && !CheckCollision(car)) {
+                return true;
             }
+            return false;
         }
-        return false;
     }
     void GenerateCarAtTopLeft(int number) {
         cars[number].SetX(0);
         cars[number].SetY(0);
     }
     void Draw(HDC hdc)const  {
+        parkingArea.Draw(hdc);  // Отображение парковочной площадки
+        road.Draw(hdc);  // Отображение дорог
+        obstacle.Draw(hdc);
+        // Отображение домов
+        for (const auto& house : houses) {
+            house.Draw(hdc);
+        }
 
+        // Отображение машин
+        for (const auto&car:cars) {
+            car.Draw(hdc);
+        }
     }
     void MoveCar(int number) {
 
@@ -719,6 +742,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
                 // Больше машин в остальное время
                 numCars = MAX_CARS - 1;  // Оставляем одно свободное место
             }
+            cars.resize(numCars);
             yard.GenerateRandomCars(numCars);
             hdc = BeginPaint(hwnd, &ps);
             yard.Draw(hdc);
@@ -750,7 +774,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             // Генерируем случайное число от 0 до MAX_CARS
             int randomCarIndex = rand() % MAX_CARS;
             
-            if (!cars[randomCarIndex].GetIsParking())
+            if (!cars[randomCarIndex].GetisParking())
             {
                 yard.GenerateCarAtTopLeft(randomCarIndex);
                 yard.MoveCar(randomCarIndex);
