@@ -16,6 +16,10 @@ const int MAP_TOP_BORDER = 0;
 const int MAP_BOTTOM_BORDER = 800;
 // Максимально возможное количество машин
 int MAX_CARS = 10;
+bool keyWPressed = false;
+bool keySPressed = false;
+bool keyAPressed = false;
+bool keyDPressed = false;
 
 
 // Прототип функции работы с окном(для коректной работы)
@@ -62,6 +66,9 @@ private:
     double angle; // Угол поворота машины
     COLORREF color; // Для хранения цвета машины
     bool isParking = false;
+    double speed = 0.0;
+    double direction = 0.0;
+    const double MaxSpeed = 10;
 public:
 
     Car() 
@@ -83,9 +90,30 @@ public:
         }
         return false; // Нет столкновения
     }
-    
+    // Новый метод для установки скорости и направления движения
+    void SetMovement(double newSpeed, double newDirection) {
+        if (newSpeed > MaxSpeed) {
+            speed = newSpeed * 0.5;
+        }
+        else {
+            speed = newSpeed;
+        }
 
+        direction = newDirection;
+    }
+    // Метод для установки скорости и направления движения
+    void RotateInMotion(double rotationSpeed) {
+        if (speed != 0) {
+            angle += rotationSpeed * direction;
+        }
+    }
 
+    // Метод для перемещения машины
+    void Move(int newX, int newY, double newAngle) {
+        x = newX;
+        y = newY;
+        angle = newAngle;
+    }
     //Устанавливаем цвет машины
     void SetColor(COLORREF newColor) { color = newColor;}
 
@@ -327,8 +355,16 @@ private:
     Road road;                  // Создаем объект дороги
     Obstacle obstacle; // Добавляем препятствие
     std::vector<House> houses;  // Вектор для хранения домов
+    Car userCar;
+    bool isParking = false;  // Стоит ли машина на парковочном месте
+    double userCarAngle = 0.0;  // Добавленная переменная для хранения угла
+    // поворота машины пользователя
 
 
+    double targetUserCarAngle =
+        0.0;  // Добавленная переменная для хранения целевого угла
+    double userCarRotationSpeed = 0.1;  // Скорость поворота машины
+    double maxRotationAngle = 0.1;  // Максимальный угол поворота за один кадр
 
     // Координаты домов
     int startX[5] = { 220, 220, 810, 810 ,810 };
@@ -540,22 +576,65 @@ public:
             return false;
         }
     }
-
-    void GenerateCarAtTopLeft() {
-        Car newCar;
-        newCar.SetX(0);
-        newCar.SetY(0);
-        cars.push_back(newCar);
-        //MoveCar();
+    // Функция линейной интерполяции
+    double Lerp(double a, double b, double t) {
+        return a + t * (b - a);
     }
+    // Метод для движения машины пользователя
+    void MoveUserCar(int dx, int dy) {
+        // Запоминаем предыдущие координаты машины пользователя
+        int prevX = userCar.GetX();
+        int prevY = userCar.GetY();
 
-    void MoveCar() {
-        int sizeCars = cars.size();
-        int prevX = cars[sizeCars].GetX();
-        int prevY = cars[sizeCars].GetY();
-        
+        // Вычисляем угол направления движения курсора
+        double angle = atan2(dy, dx);
+        double targetAngle = atan2(dy, dx);
+
+        // Устанавливаем целевой угол поворота машины пользователя
+        targetUserCarAngle = angle;
+
+        // Вычисляем разницу между текущим и целевым углом
+        double angleDiff = targetUserCarAngle - userCarAngle;
+
+        // Интерполяция координат и угла для создания эффекта плавного движения
+        double interpolationFactor = 0.1;
+        userCarAngle = Lerp(userCarAngle, targetUserCarAngle, interpolationFactor);
+        userCar.SetMovement(sqrt(dx * dx + dy * dy), userCarAngle);
+
+        // Обновляем координаты машины пользователя с учетом интерполяции
+        double newX = Lerp(prevX, prevX + dx, interpolationFactor);
+        double newY = Lerp(prevY, prevY + dy, interpolationFactor);
+        userCar.Move(static_cast<int>(newX), static_cast<int>(newY), userCarAngle);
+
+        // Устанавливаем скорость и угол движения машины пользователя
+        userCar.SetMovement(sqrt(dx * dx + dy * dy), angle);
+
+        // Поворачиваем машину в движении с учетом скорости вращения
+        userCar.RotateInMotion(userCarRotationSpeed);
+        // Перемещаем машину пользователя
+        userCar.Move(prevX + dx, prevY + dy, userCarAngle);
+
+        // Проверка на выход за границы карты и возврат на предыдущие координаты при
+        // выходе
+        if (userCar.GetX() < MAP_LEFT_BORDER ||
+            userCar.GetX() + userCar.GetWidth() > MAP_RIGHT_BORDER ||
+            userCar.GetY() < MAP_TOP_BORDER ||
+            userCar.GetY() + userCar.GetHeight() > MAP_BOTTOM_BORDER) {
+            userCar.Move(prevX, prevY, userCarAngle);
+        }
+        // Проверка на столкновение с препятствием
+        if (obstacle.IsCollision(userCar)) {
+            userCar.SetColor(RGB(255, 0, 0));
+            //obstacle.Reset();
+        }
+     
+
+        // Проверка на столкновение с другими машинами и возврат на предыдущие
+        // координаты при столкновении
+        if (CheckCollision(userCar)) {
+            userCar.Move(prevX, prevY, userCarAngle);
+        }
     }
-
     void Draw(HDC hdc)const  {
         parkingArea.Draw(hdc);  // Отображение парковочной площадки
         road.Draw(hdc);  // Отображение дорог
@@ -569,6 +648,7 @@ public:
         for (const auto&car:cars) {
             car.Draw(hdc);
         }
+        userCar.Draw(hdc);
     }
     // --------------------------------------------------------------------------------------------------------
     void ToggleFullscreen(HWND hwnd) {
@@ -598,6 +678,19 @@ public:
         int b = b1 + t * (b2 - b1);
 
         return RGB(r, g, b);
+    }
+    void ProcessKeyPress() {
+        // Инициализация смещений
+        int dx = 0, dy = 0;
+
+        // Проверка состояния клавиш и обновление смещений
+        if (GetAsyncKeyState('W') & 0x8000) dy -= 10;
+        if (GetAsyncKeyState('S') & 0x8000) dy += 10;
+        if (GetAsyncKeyState('A') & 0x8000) dx -= 10;
+        if (GetAsyncKeyState('D') & 0x8000) dx += 10;
+
+        // Вызов метода для движения машины пользователя с учетом смещений
+        MoveUserCar(dx, dy);
     }
 
 };
@@ -669,6 +762,25 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
     bool isSliderMoving = false;
     switch (uMsg) {
 
+    case WM_KEYUP:
+        switch (wParam) {
+        case 'W':
+            keyWPressed = false;
+            break;
+
+        case 'S':
+            keySPressed = false;
+            break;
+
+        case 'A':
+            keyAPressed = false;
+            break;
+
+        case 'D':
+            keyDPressed = false;
+            break;
+        }
+        break;
 
     case WM_KEYDOWN:
         if (wParam == VK_F11) {
@@ -676,6 +788,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             InvalidateRect(hwnd, NULL, TRUE);
             break;
         }
+        yard.ProcessKeyPress();
+        InvalidateRect(hwnd, NULL, TRUE);
         break;
     case WM_PAINT:
         hdc = BeginPaint(hwnd, &ps);
@@ -759,7 +873,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
         if (GetDlgCtrlID((HWND)lParam) == ID_TRACKBAR)
         {
             int pos = SendMessage((HWND)lParam, TBM_GETPOS, 0, 0);
-            isSliderMoving = true;
 
             // Изменение фона в зависимости от времени
             COLORREF dayColor = RGB(135, 206, 235);
@@ -796,21 +909,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             SetClassLongPtr(hwnd, GCLP_HBRBACKGROUND, (LONG_PTR)CreateSolidBrush(backgroundColor));
             InvalidateRect(hwnd, NULL, TRUE);
         }
-        else {
-            isSliderMoving = false;
-        }
         break;
         }
-    case WM_TIMER:
-    {
-        // Проверяем, двигается ли ползунок
-        if (!isSliderMoving)
-        {
-            //Sleep(0);
-            yard.GenerateCarAtTopLeft();
-        }
-        break;
-    }
     case WM_CLOSE:
         DestroyWindow(hwnd);  // Закрытие окна при нажатии кнопки закрытия
         break;
