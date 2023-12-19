@@ -4,6 +4,9 @@
 #include<vector>
 #include<time.h>
 #include <CommCtrl.h>
+#include<ctime>
+#include<limits>
+#include<cstdlib>
 #define ID_TRACKBAR 101
 // Определение полного экрана
 bool fullscreen = false;
@@ -81,8 +84,7 @@ public:
         return false; // Нет столкновения
     }
     
-    // Реализовать поиск пути по волновому алгоритму
-    void MoveWave() {}
+
 
     //Устанавливаем цвет машины
     void SetColor(COLORREF newColor) { color = newColor;}
@@ -126,6 +128,7 @@ public:
         DeleteObject(WindowBrush);
     }
 
+    
 };
 
 
@@ -537,10 +540,22 @@ public:
             return false;
         }
     }
-    void GenerateCarAtTopLeft(int number) {
-        cars[number].SetX(0);
-        cars[number].SetY(0);
+
+    void GenerateCarAtTopLeft() {
+        Car newCar;
+        newCar.SetX(0);
+        newCar.SetY(0);
+        cars.push_back(newCar);
+        //MoveCar();
     }
+
+    void MoveCar() {
+        int sizeCars = cars.size();
+        int prevX = cars[sizeCars].GetX();
+        int prevY = cars[sizeCars].GetY();
+        
+    }
+
     void Draw(HDC hdc)const  {
         parkingArea.Draw(hdc);  // Отображение парковочной площадки
         road.Draw(hdc);  // Отображение дорог
@@ -554,9 +569,6 @@ public:
         for (const auto&car:cars) {
             car.Draw(hdc);
         }
-    }
-    void MoveCar(int number) {
-
     }
     // --------------------------------------------------------------------------------------------------------
     void ToggleFullscreen(HWND hwnd) {
@@ -794,14 +806,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
         // Проверяем, двигается ли ползунок
         if (!isSliderMoving)
         {
-            // Генерируем случайное число от 0 до MAX_CARS
-            int randomCarIndex = rand() % MAX_CARS;
-            
-            if (!cars[randomCarIndex].GetisParking())
-            {
-                yard.GenerateCarAtTopLeft(randomCarIndex);
-                yard.MoveCar(randomCarIndex);
-            }
+            //Sleep(0);
+            yard.GenerateCarAtTopLeft();
         }
         break;
     }
