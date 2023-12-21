@@ -93,6 +93,16 @@ public:
         y = newY;
         angle = newAngle;
     }
+    void MoveForward(double distance) {
+        x += cos(angle) * distance;
+        y += sin(angle) * distance;
+    }
+    void TurnLeft(double angle) {
+        this->angle -= angle;
+    }
+    void TurnRight(double angle) {
+        this->angle += angle;
+    }
     //Устанавливаем цвет машины
     void SetColor(COLORREF newColor) { color = newColor;}
 
@@ -573,6 +583,8 @@ public:
             car.Draw(hdc);
         }
     }
+
+
     // --------------------------------------------------------------------------------------------------------
     void ToggleFullscreen(HWND hwnd) {
         fullscreen = !fullscreen;
@@ -673,15 +685,15 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
     bool isSliderMoving = false;
     switch (uMsg) {
 
-    
+
 
     case WM_KEYDOWN:
         if (wParam == VK_F11) {
             yard.ToggleFullscreen(hwnd);
             InvalidateRect(hwnd, NULL, TRUE);
             break;
-        InvalidateRect(hwnd, NULL, TRUE);
-        break;
+            InvalidateRect(hwnd, NULL, TRUE);
+            break;
     case WM_PAINT:
         hdc = BeginPaint(hwnd, &ps);
         yard.Draw(hdc);
@@ -801,7 +813,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             InvalidateRect(hwnd, NULL, TRUE);
         }
         break;
-        }
+    }
     case WM_CLOSE:
         DestroyWindow(hwnd);  // Закрытие окна при нажатии кнопки закрытия
         break;
@@ -812,6 +824,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
         return 0;
     default:
         return DefWindowProc(hwnd, uMsg, wParam, lParam);
+        }
+        return 0;
     }
-    return 0;
 }
