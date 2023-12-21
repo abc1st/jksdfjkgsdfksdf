@@ -1,87 +1,170 @@
-#include <SFML/Graphics.hpp>
-#include <vector>
-#include <ctime>
-#include <cstdlib>
+#include <windows.h>
+#include <algorithm>
+#include <cmath>
+#include<vector>
+#include<time.h>
+#include <CommCtrl.h>
+#include<ctime>
+#include<limits>
+#include<cstdlib>
+#define ID_TRACKBAR 101
+// Определение полного экрана
+bool fullscreen = false;
+const int MAP_LEFT_BORDER = 0;
+const int MAP_RIGHT_BORDER = 1280;
+const int MAP_TOP_BORDER = 0;
+const int MAP_BOTTOM_BORDER = 800;
+// Максимально возможное количество машин
+int MAX_CARS = 10;
 
-const int MAP_LEFT_BORDER = 100;
-const int MAP_TOP_BORDER = 100;
-const int MAP_RIGHT_BORDER = 1000;
-const int MAP_BOTTOM_BORDER = 700;
-const int MAX_CARS = 8;
+// Прототип функции работы с окном(для коректной работы)
+LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+HBRUSH hBackgroundBrush;  // Цвет заднего фона
+
+// Базовый класс для игровых объектов
 class GameObject {
 protected:
-    sf::RectangleShape shape;
+    // Данные игровых объектов
+    int x, y, width, height;
+
 public:
-    GameObject(float startX, float startY, float objWidth, float objHeight)
-        : shape(sf::Vector2f(objWidth, objHeight)) {
-        shape.setPosition(startX, startY);
-    }
+    // Конструктор по умолчанию
+    GameObject(int startX, int startY, int objWidth, int objHeight)
+        : x(startX), y(startY), width(objWidth), height(objHeight) {}
 
-    float GetX() const { return shape.getPosition().x; }
-    float GetY() const { return shape.getPosition().y; }
-    float GetWidth() const { return shape.getSize().x; }
-    float GetHeight() const { return shape.getSize().y; }
+    // Метод для получения координаты x
+    int GetX() const { return x; }
 
-    void SetX(float value) { shape.setPosition(value, GetY()); }
-    void SetY(float value) { shape.setPosition(GetX(), value); }
-    void SetWidth(float value) { shape.setSize(sf::Vector2f(value, GetHeight())); }
-    void SetHeight(float value) { shape.setSize(sf::Vector2f(GetWidth(), value)); }
+    //Метод для получение координаты y
+    int GetY() const { return y; }
 
-    virtual void Draw(sf::RenderWindow& window) const = 0;
+    // Метод для получаения ширины
+    int GetWidth() const { return width; }
+
+    //Метод для получения высоты
+    int GetHeight() const { return height; }
+
+    void SetX(int value) { x = value; }
+
+    void SetY(int value) { y = value; }
+
+    void SetWidth(int value) { width = value; }
+
+    void SetHeight(int value) { height = value; }
+
+    // Виртуальная функция для отрисовки объекта
+    virtual void Draw(HDC hdc) const = 0;
 };
 
 class Car : public GameObject {
 private:
-    float angle;
-    sf::Color color;
+    double angle; // Угол поворота машины
+    COLORREF color; // Для хранения цвета машины
     bool isParking = false;
-
+    double speed = 0.0;
+    double direction = 0.0;
+    const double MaxSpeed = 10;
 public:
-    Car() :GameObject(0, 0, 100, 50), angle(0), color(sf::Color::Green) {
-        shape.setFillColor(color);
-    };
-    Car(float startX, float startY)
-        :GameObject(startX, startY, 100, 50), angle(0), color(sf::Color::Green) {
-        shape.setFillColor(color);
-    }
+
+    Car() 
+        :GameObject(0, 0, 100, 50), angle(0), color(RGB(0,255,0)) {};
+    Car(int startX, int startY)
+        :GameObject(startX, startY, 100, 50),angle(0),
+        color(RGB(0, 255, 0)) {}
 
     void SetisParking(bool Parking) { isParking = Parking; }
+    
     bool GetisParking() { return isParking; }
-
+   
     bool IsCollision(const GameObject& other) const {
-        return shape.getGlobalBounds().intersects(other.shape.getGlobalBounds());
+        if (x < other.GetX() + other.GetWidth() &&
+            x + width > other.GetX() &&
+            y < other.GetY() + other.GetHeight() &&
+            y + height > other.GetY()) {
+            return true; // Столкновение обнаружено
+        }
+        return false; // Нет столкновения
     }
 
-    void Move(float newX, float newY, float newAngle) {
-        shape.setPosition(newX, newY);
+
+    // Метод для перемещения машины
+    void Move(int newX, int newY, double newAngle) {
+        x = newX;
+        y = newY;
         angle = newAngle;
     }
+    //Устанавливаем цвет машины
+    void SetColor(COLORREF newColor) { color = newColor;}
 
-    void SetColor(sf::Color newColor) { color = newColor; shape.setFillColor(color); }
+    //Рисуем машину
+    void Draw(HDC hdc)const override {
+        HBRUSH ColorBrush = CreateSolidBrush(color);
+        HBRUSH WindowBrush = CreateSolidBrush(RGB(0, 0, 255));
+        SelectObject(hdc, ColorBrush);
 
-    void Draw(sf::RenderWindow& window) const override {
-        window.draw(shape);
+        //Пока не понятно как отривовыветь угол поворота машины
+        // Добавить потом
+        // Получаем координаты центра машины
+        int centerX = x + width / 2;
+        int centerY = y + height / 2;
+        // Поворачиваем координатные оси для отрисовки повернутой машины
+        SetGraphicsMode(hdc, GM_ADVANCED);
+        XFORM xForm;
+        xForm.eM11 = static_cast<FLOAT>(cos(angle));
+        xForm.eM12 = static_cast<FLOAT>(sin(angle));
+        xForm.eM21 = static_cast<FLOAT>(-sin(angle));
+        xForm.eM22 = static_cast<FLOAT>(cos(angle));
+        xForm.eDx = static_cast<FLOAT>(centerX);
+        xForm.eDy = static_cast<FLOAT>(centerY);
+        SetWorldTransform(hdc, &xForm);
+        //Отрисовка машины
+        //Rectangle(hdc, x, y, width, height);
+        // Отрисовка прямоугольника, представляющего машину
+        Rectangle(hdc, x - centerX, y - centerY, x - centerX + width,
+            y - centerY + height);
+
+        // Отрисовка окон
+        SelectObject(hdc, WindowBrush);
+        //Rectangle(hdc, x, y, width, height);//Пробные значения
+        Rectangle(hdc, x + 60 - centerX, y + 10 - centerY, x + 70 - centerX,
+            y + 40 - centerY);
+        // Сбрасываем трансформацию
+        SetGraphicsMode(hdc, GM_COMPATIBLE);
+        ModifyWorldTransform(hdc, nullptr, MWT_IDENTITY);
+        DeleteObject(ColorBrush);
+        DeleteObject(WindowBrush);
     }
+
+    
 };
+
+
 
 class ParkingArea : public GameObject {
 private:
-    const float PARKING_AREA_X = 400.f;
-    const float PARKING_AREA_Y = 0.f;
-    const float PARKING_AREA_WIDTH = 800.f;
-    const float PARKING_AREA_HEIGHT = 800.f;
+    const int PARKING_AREA_X = 400;
+    const int PARKING_AREA_Y = 0;
+    const int PARKING_AREA_WIDTH = 800;
+    const int PARKING_AREA_HEIGHT = 800;
 
+
+    //Количество парковочных мест
     const int MaxParkingSpace = 9;
 
-    float ParkingLineStartXLeft = 400.f;
-    float ParkingLineEndXLeft = 500.f;
+    // Начальные координаты для парковки слева
+    int ParkingLineStartXLeft = 400;
+    int ParkingLineEndXLeft = 500;
 
-    float ParkingLineStartXRight = 700.f;
-    float ParkingLineEndXRight = 800.f;
+    // Начальные координаты для парковки справа
+    int ParkingLineStartXRight = 700;
+    int ParkingLineEndXRight = 800;
 
-    mutable float ParkingLineStartY[11] = { 1.f };
-    mutable float ParkingLineEndY[11] = { 6.f };
+    // Массивы для хранения координат парковочных линий
 
+    mutable int ParkingLineStartY[11] = { 1 };
+    mutable int ParkingLineEndY[11] = { 6 };
+
+    // Метод для получения координат начала и конца парковочных линий
     void ParkingLine() const {
         for (int i = 1; i < MaxParkingSpace; ++i) {
             ParkingLineStartY[i] =
@@ -89,16 +172,18 @@ private:
             ParkingLineEndY[i] = PARKING_LINE_INTERVAL + ParkingLineEndY[i - 1];
         }
     }
-
 protected:
-    const float PARKING_LINE_INTERVAL = 75.f;
+    // Парковочный интервал
+    const int PARKING_LINE_INTERVAL = 75;
 
-    void MidParking(float xParLeft[9], float xParRight[9],
-        float yPar[11]) const {
+    //Метод для получения координат середины парковочных линий
+    void MidParking(double xParLeft[9], double xParRight[9],
+        double yPar[11]) const {
+        // Вызываем для получения координат парковочных линий для парковки 
         for (int i = 0; i < 8; i++) {
-            xParLeft[i] = (ParkingLineStartXLeft + ParkingLineEndXLeft) * 0.5f;
-            yPar[i] = (ParkingLineStartY[i] + ParkingLineEndY[i + 1]) * 0.5f;
-            xParRight[i] = (ParkingLineStartXRight + ParkingLineEndXRight) * 0.5f;
+            xParLeft[i] = (ParkingLineStartXLeft + ParkingLineEndXLeft) * 0.5;
+            yPar[i] = (ParkingLineStartY[i] + ParkingLineEndY[i + 1]) * 0.5;
+            xParRight[i] = (ParkingLineStartXRight + ParkingLineEndXRight) * 0.5;
         }
     }
 
@@ -108,109 +193,151 @@ public:
         ParkingLine();
     }
 
-    void Draw(sf::RenderWindow& window) const override {
-        sf::RectangleShape parkingArea(sf::Vector2f(PARKING_AREA_WIDTH, PARKING_AREA_HEIGHT));
-        parkingArea.setPosition(PARKING_AREA_X, PARKING_AREA_Y);
-        parkingArea.setFillColor(sf::Color(105, 105, 105));
-        window.draw(parkingArea);
+    // Отрисовка парковочной арены
+    void Draw(HDC hdc)const override {
+        HBRUSH GrayBrush = CreateSolidBrush(RGB(105, 105, 105));
+        SelectObject(hdc, GrayBrush);
 
-        sf::RectangleShape parkingLine(sf::Vector2f(ParkingLineEndXLeft - ParkingLineStartXLeft, ParkingLineEndY[0] - ParkingLineStartY[0]));
-        parkingLine.setFillColor(sf::Color::White);
+        Rectangle(hdc, PARKING_AREA_X, PARKING_AREA_Y, PARKING_AREA_WIDTH, PARKING_AREA_HEIGHT);
+        DeleteObject(GrayBrush);
 
+        HBRUSH WhiteBrush = CreateSolidBrush(RGB(255, 255, 255));
+        SelectObject(hdc, WhiteBrush);
+
+        //Отрисовка парковочных мест
         for (int i = 0; i < MaxParkingSpace; i++) {
-            parkingLine.setPosition(ParkingLineStartXLeft, ParkingLineStartY[i]);
-            window.draw(parkingLine);
-            parkingLine.setPosition(ParkingLineStartXRight, ParkingLineStartY[i]);
-            window.draw(parkingLine);
+            Rectangle(hdc, ParkingLineStartXLeft, ParkingLineStartY[i],
+                ParkingLineEndXLeft, ParkingLineEndY[i]);
+            Rectangle(hdc, ParkingLineStartXRight, ParkingLineStartY[i],
+                ParkingLineEndXRight, ParkingLineEndY[i]);
         }
+        DeleteObject(WhiteBrush);
     }
 };
 
-class Road : public GameObject {
+// Класс дорог и разметки, наследуется от игрового объекта
+class Road
+    : public GameObject {
 public:
-    Road() : GameObject(10.f, 0.f, 200.f, 1500.f) {}
-    Road(float startX, float startY, float roadWidth, float roadHeight)
+    // Конструктор дорог
+    Road() : GameObject(10, 0, 200, 1500) {}
+    Road(int startX, int startY, int roadWidth, int roadHeight)
         : GameObject(startX, startY, roadWidth, roadHeight) {}
 
-    void Draw(sf::RenderWindow& window) const override {
-        sf::RectangleShape road(sf::Vector2f(width, height));
-        road.setPosition(x, y);
-        road.setFillColor(sf::Color(105, 105, 105));
-        window.draw(road);
+    // Метод для отрисовки дорог и разметки
+    void Draw(HDC hdc) const override {
+        // Отображение дороги (прямоугольник)
+        HBRUSH GrayBrush = CreateSolidBrush(
+            RGB(105, 105, 105));  // Создаем кисть для отрисовки дорог
+        SelectObject(hdc, GrayBrush);
 
-        sf::RectangleShape parkingRoad(sf::Vector2f(391.f - 199.f, 800.f - 600.f));
-        parkingRoad.setPosition(x + 199.f, y + 600.f);
-        parkingRoad.setFillColor(sf::Color(105, 105, 105));
-        window.draw(parkingRoad);
+        Rectangle(hdc, x, y, x + width, y + height);  // Отрисовываем главную дорогу
+        Rectangle(hdc, x + 199, y + 600, x + 391,
+            y + 800);  // Отрисовываем дорогу до парковочной области
 
-        sf::RectangleShape marking(sf::Vector2f(20.f, 40.f));
-        marking.setFillColor(sf::Color::White);
+        // Освобождаем ресурсы кисти
+        DeleteObject(GrayBrush);
 
+        // Рисуем разметку
+        HBRUSH WhiteBrush = CreateSolidBrush(
+            RGB(255, 255, 255));  // Создаем кисть для отрисовки разметки
+        SelectObject(hdc, WhiteBrush);
+
+        // Задаем начальные координаты
+        int y1 = y, y2 = y;
+
+        // Рисуем разметку на главной дороге
         for (int i = 0; i < 19; i++) {
-            marking.setPosition(x + 90.f, y + i * 80.f);
-            window.draw(marking);
+            Rectangle(hdc, x + 90, y1, x + 110, y2 + 40);
+            y1 = y2 + 60;
+            y2 += 80;
         }
 
-        sf::RectangleShape parkingMarking(sf::Vector2f(40.f, 20.f));
-        parkingMarking.setFillColor(sf::Color::White);
+        // Задаем начальные координаты для дороги до парковочной области
+        int x1 = x + 209, x2 = x + 249;
 
+        // Рисуем разметку на дороге до парковочного места
         for (int i = 0; i < 3; ++i) {
-            parkingMarking.setPosition(x + 209.f + i * 60.f, y + 690.f);
-            window.draw(parkingMarking);
+            Rectangle(hdc, x1, y + 690, x2, y + 710);
+            x1 = x2 + 20;
+            x2 += 60;
         }
+
+        // Освобождаем ресурсы кистм
+        DeleteObject(WhiteBrush);
     }
 };
 
-class Obstacle : public GameObject {
-public:
-    Obstacle() :GameObject(0.f, 0.f, 0.f, 0.f) {
-        shape.setFillColor(sf::Color::Black);
-    };
-    Obstacle(float startX, float startY, float obstacleWidth, float obstacleHeight)
-        : GameObject(startX, startY, obstacleWidth, obstacleHeight) {
-        shape.setFillColor(sf::Color::Black);
-    }
-
-    void Draw(sf::RenderWindow& window) const override {
-        window.draw(shape);
-    }
-
-    void Reset() {
-        shape.setPosition(-1.f, -1.f);
-    }
-
-    bool IsCollision(const GameObject& other) const {
-        return shape.getGlobalBounds().intersects(other.shape.getGlobalBounds());
-    }
-};
-
+// Класс дом, наследуется от игрового объекта
 class House : public GameObject {
 private:
-    sf::Color color;
+    // Получаем цвет
+    COLORREF color;
 
 public:
-    House(float StartX, float StartY, float StartWidth, float StartHeight, sf::Color houseColor)
-        :GameObject(StartX, StartY, StartWidth, StartHeight), color(houseColor) {
-        shape.setFillColor(color);
-    }
+    House(int StartX,int StartY,int StartWidth,int StarttHeight,COLORREF houseColor) 
+        :GameObject(StartX,StartY,StartWidth, StarttHeight),color(houseColor) {}
 
-    void Draw(sf::RenderWindow& window) const override {
-        window.draw(shape);
+    // Метод для отрисовки дома
+    void Draw(HDC hdc) const override {
+        // Отображение дома (прямоугольник) с цветом
+
+        HBRUSH hBrush = CreateSolidBrush(color);
+        SelectObject(hdc, hBrush);
+
+        // Рисуем дом
+        Rectangle(hdc, x, y, x + width, y + height);
+
+         // Очищаем ресурсы кисти
+        DeleteObject(hBrush);
     }
 };
 
+// Класс препядствия, наследуется от игрового объекта
+class Obstacle : public GameObject {
+public:
+    Obstacle() :GameObject(0, 0, 0, 0) {};
+    // Конструктор для создания препятствия с заданными координатами, шириной и высотой
+    Obstacle(int startX, int startY, int obstacleWidth, int obstacleHeight)
+        : GameObject(startX, startY, obstacleWidth, obstacleHeight) {}
+    // Метод для отображения препятствия
+    void Draw(HDC hdc) const override {
+        HBRUSH BlackBrush = CreateSolidBrush(RGB(0, 0, 0));
+        SelectObject(hdc, BlackBrush);
+        Rectangle(hdc, x, y, x + width, y + height); // Создаем прямоугольник как препядствие 
+        DeleteObject(BlackBrush);
+    }
+    void Reset()
+    {
+        x = -1;
+        y = -1;
+    }
+    // Метод для проверки столкновения с другим объектом
+    bool IsCollision(const GameObject& other) const {
+        // Проверяем столкновение с другим объектом
+        if (x < other.GetX() + other.GetWidth() &&
+            x + width > other.GetX() &&
+            y < other.GetY() + other.GetHeight() &&
+            y + height > other.GetY()) {
+            return true; // Столкновение обнаружено
+        }
+        return false; // Нет столкновения
+    }
+};
+
+std::vector<Car>cars;
 
 class Yard : protected ParkingArea {
 private:
-    sf::RenderWindow window;  // Изменение типа окна на sf::RenderWindow
+  
     ParkingArea parkingArea;  // Создаем объект парковочной области
     Road road;                  // Создаем объект дороги
     Obstacle obstacle; // Добавляем препятствие
     std::vector<House> houses;  // Вектор для хранения домов
-    Car userCar;
     bool isParking = false;  // Стоит ли машина на парковочном месте
     double userCarAngle = 0.0;  // Добавленная переменная для хранения угла
     // поворота машины пользователя
+
 
     double targetUserCarAngle =
         0.0;  // Добавленная переменная для хранения целевого угла
@@ -218,27 +345,28 @@ private:
     double maxRotationAngle = 0.1;  // Максимальный угол поворота за один кадр
 
     // Координаты домов
-    int startX[5] = { 220, 220, 810, 810, 810 };
-    int startWidth[5] = { 170, 170, 250, 250, 400 };
-    int startY[5] = { 30, 200, 290, 500, 9 };
-    int startHeight[5] = { 150, 350, 200, 300, 200 };
+    int startX[5] = { 220, 220, 810, 810 ,810 };
+    int startWidth[5] = { 170, 170, 250, 250 ,400 };
+    int startY[5] = { 30, 200, 290, 500 ,9 };
+    int startHeight[5] = { 150, 350, 200, 300,200 };
 
 public:
     Yard() {
         srand(static_cast<unsigned>(time(nullptr)));  // Сбиваем значения
-
+       
         //Генерируем машины
         GenerateRandomCars(MAX_CARS);
 
         //Добавляем дома
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i <5; i++) {
             int randColor = RGB(rand() % 255, rand() % 255, rand() % 255);
-            if (i < 4) {
-                houses.push_back(House(startX[i], startY[i], startWidth[i], startHeight[i], randColor));
+            if (i < 4)
+            {
+                houses.push_back(House(startX[i], startY[i], startWidth[i], startHeight[i],randColor));
             }
             else {
                 randColor = RGB(255, 255, 255);
-                houses.push_back(House(startX[i], startY[i], startWidth[i], startHeight[i], randColor));
+                houses.push_back(House(startX[i],startY[i],startWidth[i],startHeight[i],randColor));
             }
         }
         //Генерируем возможное препядствие
@@ -269,7 +397,8 @@ public:
 
         int i = 0;
         //Цикл для генерации машин
-        while (i < numCars) {
+        while (i < numCars)
+        {
             int index = rand() % MaxParkingLines - 1;
             int randColor = RGB(rand() % 255, rand() % 255, rand() % 255);
             if (!parked[index]) {
@@ -279,9 +408,10 @@ public:
                     double xplace = (index % 2 == 0) ? xParLeft[xrand] : xParRight[xrand];
                     double yplace = yPar[yrand];
                     if (index % 2 == 0) {
-                        if (!usedxParLeft[xrand] && !usedyParLeft[yrand]) {
+                        if (!usedxParLeft[xrand] && !usedyParLeft[yrand])
+                        {
                             cars.push_back(
-                                Car(xplace - ParkingLineWidth, yplace - ParkingLineHeight));
+                                Car(xplace - ParkingLineWidth, yplace - ParkingLineHeight));;
                             if (!cars[i].IsCollision(obstacle)) {
                                 cars[i].SetisParking(true);
                                 cars[i].SetColor(randColor);
@@ -293,29 +423,35 @@ public:
                             else {
                                 cars.pop_back();
                             }
+                            
+
                         }
                     }
-                    else if (!usedxParRight[xrand] && !usedyParRight[yrand]) {
-                        cars.push_back(
-                            Car(xplace - ParkingLineWidth, yplace - ParkingLineHeight));
-                        if (!cars[i].IsCollision(obstacle)) {
-                            cars[i].SetisParking(true);
-                            cars[i].SetColor(randColor);
-                            parked[index] = true;
-                            usedxParRight[xrand] = true;
-                            usedyParRight[yrand] = true;
-                            i++;
+                    else 
+                        if (!usedxParRight[xrand] && !usedyParRight[yrand])
+                        {
+                            cars.push_back(
+                                Car(xplace - ParkingLineWidth, yplace - ParkingLineHeight));
+                            if (!cars[i].IsCollision(obstacle)) {
+                                cars[i].SetisParking(true);
+                                cars[i].SetColor(randColor);
+                                parked[index] = true;
+                                usedxParRight[xrand] = true;
+                                usedyParRight[yrand] = true;
+                                i++;
+                            }
+                            else {
+                                cars.pop_back();
+                            }
                         }
-                        else {
-                            cars.pop_back();
-                        }
-                    }
+                    
                 }
             }
         }
     }
 
     // Метод для генерации случайного препятствия
+
     void GenerateRandomObstacle() {
         if (rand() % 100 < 99) { // Настройка шанса генерации препядствия
             obstacle.Reset();
@@ -328,8 +464,10 @@ public:
             obstacle.SetWidth(width);
             obstacle.SetHeight(height);
             // Проверка на столкновение с машинами
-            for (const auto& car : cars) {
-                if (obstacle.IsCollision(car)) {
+            for (const auto&car:cars)
+            {
+                if (obstacle.IsCollision(car))
+                {
                     GenerateRandomObstacle();
                     return;
                 }
@@ -355,6 +493,7 @@ public:
                     car.GetY() + car.GetHeight() > otherCar.GetY()) {
                     return true;  // Коллизия обнаружена
                 }
+
             }
         }
 
@@ -369,7 +508,8 @@ public:
         }
 
         // Проверяем коллизию с препядствием
-        if (obstacle.IsCollision(car)) {
+        if (obstacle.IsCollision(car))
+        {
             return true;
         }
 
@@ -377,7 +517,7 @@ public:
     }
 
     // Проверка на правильность парковки
-    bool CheckCorrectParking(int number) const {
+    bool CheckCorrectParking(int number)const {
         // Получаем координаты машины
         double CarX = cars[number].GetX();
         double CarY = cars[number].GetY();
@@ -406,90 +546,272 @@ public:
                 }
             }
         }
-        for (const auto& car : cars) {
+        for (const auto& car : cars)
+        {
             if (isInParkingArea && !CheckCollision(car)) {
                 return true;
             }
             return false;
         }
     }
-
     // Функция линейной интерполяции
     double Lerp(double a, double b, double t) {
         return a + t * (b - a);
     }
-
-    void Draw() {
-        window.clear();  // Очистка окна перед отрисовкой
-        parkingArea.Draw(window);  // Отображение парковочной площадки
-        road.Draw(window);  // Отображение дорог
-        obstacle.Draw(window);
+   
+    void Draw(HDC hdc)const  {
+        parkingArea.Draw(hdc);  // Отображение парковочной площадки
+        road.Draw(hdc);  // Отображение дорог
+        obstacle.Draw(hdc);
         // Отображение домов
         for (const auto& house : houses) {
-            house.Draw(window);
+            house.Draw(hdc);
         }
 
         // Отображение машин
-        for (const auto& car : cars) {
-            car.Draw(window);
+        for (const auto&car:cars) {
+            car.Draw(hdc);
         }
-        userCar.Draw(window);
-        window.display();  // Отображение отрисованного содержимого
+    }
+    // --------------------------------------------------------------------------------------------------------
+    void ToggleFullscreen(HWND hwnd) {
+        fullscreen = !fullscreen;
+
+        if (fullscreen) {
+            SetWindowLong(hwnd, GWL_STYLE, WS_POPUP | WS_VISIBLE);
+            SetWindowPos(hwnd, HWND_TOP, 0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN), SWP_FRAMECHANGED);
+        }
+        else {
+            SetWindowLong(hwnd, GWL_STYLE, WS_OVERLAPPEDWINDOW | WS_VISIBLE);
+            SetWindowPos(hwnd, HWND_TOP, MAP_LEFT_BORDER, MAP_TOP_BORDER, MAP_RIGHT_BORDER, MAP_BOTTOM_BORDER, SWP_FRAMECHANGED);
+        }
     }
 
-    void ToggleFullscreen() {
-        // Реализация переключения в полноэкранный режим
-        // ...
+    COLORREF LerpColor(COLORREF color1, COLORREF color2, double t) {
+        int r1 = GetRValue(color1);
+        int g1 = GetGValue(color1);
+        int b1 = GetBValue(color1);
+
+        int r2 = GetRValue(color2);
+        int g2 = GetGValue(color2);
+        int b2 = GetBValue(color2);
+
+        int r = r1 + t * (r2 - r1);
+        int g = g1 + t * (g2 - g1);
+        int b = b1 + t * (b2 - b1);
+
+        return RGB(r, g, b);
     }
 
-    sf::Color LerpColor(sf::Color color1, sf::Color color2, double t) {
-        int r1 = color1.r;
-        int g1 = color1.g;
-        int b1 = color1.b;
 
-        int r2 = color2.r;
-        int g2 = color2.g;
-        int b2 = color2.b;
-
-        int r = static_cast<int>(Lerp(r1, r2, t));
-        int g = static_cast<int>(Lerp(g1, g2, t));
-        int b = static_cast<int>(Lerp(b1, b2, t));
-
-        return sf::Color(r, g, b);
-    }
 };
 
-int main() {
-    // Создание окна SFML
-    sf::RenderWindow window(sf::VideoMode(MAP_RIGHT_BORDER - MAP_LEFT_BORDER, MAP_BOTTOM_BORDER - MAP_TOP_BORDER), "Parking");
-    window.setPosition(sf::Vector2i(MAP_LEFT_BORDER, MAP_TOP_BORDER));
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
+    LPSTR lpCmdLine, int nCmdShow) {
+    // Инициализация структуры WNDCLASSEX
+    WNDCLASSEX wc;
+    wc.cbSize = sizeof(WNDCLASSEX);
+    wc.style = 0;
+    wc.lpfnWndProc = WindowProc;
+    wc.cbClsExtra = 0;
+    wc.cbWndExtra = 0;
+    wc.hInstance = hInstance;
+    wc.hIcon = LoadIcon(NULL, IDI_APPLICATION);
+    wc.hCursor = LoadCursor(NULL, IDC_ARROW);
+    hBackgroundBrush = CreateSolidBrush(RGB(135, 206, 235));
+    wc.hbrBackground = hBackgroundBrush;
+    wc.lpszMenuName = NULL;
+    wc.lpszClassName = L"WindowClass";
+    wc.hIconSm = LoadIcon(NULL, IDI_APPLICATION);
 
-    // Создание объекта двора
-    Yard yard;
-
-    // Создание таймера
-    sf::Clock clock;
-
-    // Главный цикл обработки событий и отрисовки
-    while (window.isOpen()) {
-        sf::Event event;
-        while (window.pollEvent(event)) {
-            if (event.type == sf::Event::Closed)
-                window.close();
-            else if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::F11) {
-                yard.ToggleFullscreen(window);
-            }
-        }
-
-        // Обновление состояния двора
-        float deltaTime = clock.restart().asSeconds();
-        yard.Update(deltaTime);
-
-        // Отрисовка
-        window.clear();
-        yard.Draw(window);
-        window.display();
+    // Регистрация класса окна
+    if (!RegisterClassEx(&wc)) {
+        MessageBox(NULL, L"Failed to register window class.", L"Error",
+            MB_ICONERROR);
+        return 1;
     }
 
+    // Создание окна
+    HWND hwnd = CreateWindowEx(0, L"WindowClass", L"Parking", WS_OVERLAPPEDWINDOW,
+        MAP_LEFT_BORDER, MAP_TOP_BORDER, MAP_RIGHT_BORDER,
+        MAP_BOTTOM_BORDER, NULL, NULL, hInstance, NULL);
+
+    // Проверка успешного создания окна
+    if (!hwnd) {
+        MessageBox(NULL, L"Failed to create window.", L"Error", MB_ICONERROR);
+        return 2;
+    }
+    // Проверка наличмя экрана
+    if (!GetSystemMetrics(SM_CXSCREEN) || !GetSystemMetrics(SM_CYSCREEN)) {
+        MessageBox(NULL, L"Unable to detect screen resolution.", L"Error", MB_ICONERROR);
+        return 3;
+    }
+
+    // Отображение окна
+    SetTimer(hwnd, 1, 1000, NULL); // устанавливает таймер с идентификатором 1, который срабатывает каждую секунду
+    ShowWindow(hwnd, nCmdShow);
+    UpdateWindow(hwnd);
+
+    // Обработка сообщений
+    MSG msg;
+    while (GetMessage(&msg, NULL, 0, 0)) {
+        TranslateMessage(&msg);
+        DispatchMessage(&msg);
+    }
+
+    // Удаление таймера и объекта кисти
+    KillTimer(hwnd, 1);
+    DeleteObject(hBackgroundBrush);
+
+    return 0;
+}
+
+LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+    static Yard yard;
+    PAINTSTRUCT ps;
+    HDC hdc;
+    bool isSliderMoving = false;
+    switch (uMsg) {
+
+    
+
+    case WM_KEYDOWN:
+        if (wParam == VK_F11) {
+            yard.ToggleFullscreen(hwnd);
+            InvalidateRect(hwnd, NULL, TRUE);
+            break;
+        InvalidateRect(hwnd, NULL, TRUE);
+        break;
+    case WM_PAINT:
+        hdc = BeginPaint(hwnd, &ps);
+        yard.Draw(hdc);
+        EndPaint(hwnd, &ps);
+        break;
+    case WM_CREATE:
+    {
+        // Создание ползунка времени
+        HWND hwndTrack = CreateWindowEx(
+            0,                               // no extended styles 
+            TRACKBAR_CLASS,                   // class name 
+            L"Trackbar Control",              // title (caption) 
+            WS_CHILD | WS_VISIBLE | TBS_AUTOTICKS | TBS_HORZ, // style 
+            850, 10,                          // position 
+            300, 30,                         // size 
+            hwnd,                            // parent window 
+            (HMENU)ID_TRACKBAR,              // control identifier 
+            GetModuleHandle(NULL),           // instance 
+            NULL                             // no WM_CREATE parameter 
+        );
+
+        // Установка диапазона и позиции ползунка
+        SendMessage(hwndTrack, TBM_SETRANGE,
+            (WPARAM)TRUE,                    // redraw flag 
+            (LPARAM)MAKELONG(0, 24));        // min. & max. positions 
+
+        SendMessage(hwndTrack, TBM_SETPOS,
+            (WPARAM)TRUE,                    // redraw flag 
+            (LPARAM)12);                     // current position 
+
+        // Создание шрифта
+        HFONT hFont = CreateFont(
+            10, 0, 0, 0, FW_DONTCARE, FALSE, FALSE, FALSE, DEFAULT_CHARSET,
+            OUT_OUTLINE_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY,
+            VARIABLE_PITCH, TEXT("Arial"));
+
+        for (int i = 0; i <= 24; i += 6) {
+            WCHAR str[5];
+            wsprintf(str, L"%d", i);
+
+            // Объявление и создание статического элемента управления
+            HWND hwndStatic = CreateWindowEx(
+                0,                               // no extended styles 
+                L"STATIC",                       // class name 
+                str,                             // window text 
+                WS_CHILD | WS_VISIBLE | SS_CENTER, // style 
+                850 + i * (155 / 12), 40,         // position 
+                10, 10,                          // size 
+                hwnd,                            // parent window 
+                NULL,                            // no menu 
+                GetModuleHandle(NULL),           // instance 
+                NULL                             // no WM_CREATE parameter 
+            );
+
+            // Установка шрифта
+            SendMessage(hwndStatic, WM_SETFONT, (WPARAM)hFont, TRUE);
+        }
+
+        // Создание статического элемента управления для текста
+        HWND hwndText = CreateWindowEx(
+            0,                               // no extended styles 
+            L"STATIC",                       // class name 
+            L"",                             // window text 
+            WS_CHILD | WS_VISIBLE | SS_CENTER, // style 
+            880, 70,                          // position 
+            300, 40,                         // size 
+            hwnd,                            // parent window 
+            NULL,                            // no menu 
+            GetModuleHandle(NULL),           // instance 
+            NULL                             // no WM_CREATE parameter 
+        );
+
+        // Установка шрифта
+        SendMessage(hwndText, WM_SETFONT, (WPARAM)hFont, TRUE);
+        break;
+    }
+    case WM_HSCROLL:
+    {
+
+        if (GetDlgCtrlID((HWND)lParam) == ID_TRACKBAR)
+        {
+            int pos = SendMessage((HWND)lParam, TBM_GETPOS, 0, 0);
+
+            // Изменение фона в зависимости от времени
+            COLORREF dayColor = RGB(135, 206, 235);
+            COLORREF nightColor = RGB(25, 25, 112);
+            COLORREF backgroundColor;
+
+            // Изменение количества машин на парковке
+            int numCars;
+
+            if (pos >= 8 && pos <= 16) {
+                // Меньше машин в период с 8 до 16s
+                numCars = MAX_CARS / 2;
+            }
+            else {
+                // Больше машин в остальное время
+                numCars = MAX_CARS - 1;  // Оставляем одно свободное место
+            }
+            cars.resize(numCars);
+            yard.GenerateRandomCars(numCars);
+            hdc = BeginPaint(hwnd, &ps);
+            yard.Draw(hdc);
+            EndPaint(hwnd, &ps);
+            if (pos <= 12) {
+                // Утро и день
+                double t = pos / 12.0;  // Нормализация положения ползунка от 0 до 1
+                backgroundColor = yard.LerpColor(nightColor, dayColor, t);
+            }
+            else {
+                // Вечер и ночь
+                double t = (pos - 12) / 12.0;  // Нормализация положения ползунка от 0 до 1
+                backgroundColor = yard.LerpColor(dayColor, nightColor, t);
+            }
+
+            SetClassLongPtr(hwnd, GCLP_HBRBACKGROUND, (LONG_PTR)CreateSolidBrush(backgroundColor));
+            InvalidateRect(hwnd, NULL, TRUE);
+        }
+        break;
+        }
+    case WM_CLOSE:
+        DestroyWindow(hwnd);  // Закрытие окна при нажатии кнопки закрытия
+        break;
+    case WM_DESTROY:
+        KillTimer(hwnd, 1);
+        DeleteObject(hBackgroundBrush);
+        PostQuitMessage(0);  // Завершение работы приложения
+        return 0;
+    default:
+        return DefWindowProc(hwnd, uMsg, wParam, lParam);
+    }
     return 0;
 }
