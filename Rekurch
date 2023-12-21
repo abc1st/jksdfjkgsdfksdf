@@ -74,7 +74,7 @@
 
         void SetisParking(bool Parking) { isParking = Parking; }
     
-        bool GetisParking() { return isParking; }
+        bool GetisParking() const{ return isParking; }
    
         bool IsCollision(const GameObject& other) const {
             if (x < other.GetX() + other.GetWidth() &&
@@ -189,7 +189,6 @@
         //Метод для получения координат середины парковочных линий
         void MidParking(double xParLeft[9], double xParRight[9],
             double yPar[11]) const {
-            // Вызываем для получения координат парковочных линий для парковки 
             for (int i = 0; i < 8; i++) {
                 xParLeft[i] = (ParkingLineStartXLeft + ParkingLineEndXLeft) * 0.5;
                 yPar[i] = (ParkingLineStartY[i] + ParkingLineEndY[i + 1]) * 0.5;
@@ -201,6 +200,37 @@
         ParkingArea() :GameObject(PARKING_AREA_X, PARKING_AREA_Y, PARKING_AREA_WIDTH,
             PARKING_AREA_HEIGHT) {
             ParkingLine();
+
+        }
+        // Метод для поиска свободных парковочных мест
+        std::vector<int> FindFreeParkingSpaces(const std::vector<Car>& cars) const {
+            std::vector<int> freeParkingSpaces;
+
+            double xParLeft[9], xParRight[9], yPar[11];
+            MidParking(xParLeft, xParRight, yPar);
+
+            for (int i = 0; i < MaxParkingSpace; ++i) {
+                bool isFree = true;
+
+                for (const auto& car : cars) {
+                    if (car.GetisParking() &&
+                        ((car.GetX() >= xParLeft[i] - 50 &&
+                            car.GetX() + car.GetWidth() <= xParLeft[i + 1] + PARKING_LINE_INTERVAL) ||
+                            (car.GetX() >= xParRight[i] - 50 &&
+                                car.GetX() + car.GetWidth() <= xParRight[i + 1] + PARKING_LINE_INTERVAL)) &&
+                        (car.GetY() >= yPar[i] - 25 &&
+                            car.GetY() + car.GetHeight() <= yPar[i + 1] + PARKING_LINE_INTERVAL)) {
+                        isFree = false;
+                        break;
+                    }
+                }
+
+                if (isFree) {
+                    freeParkingSpaces.push_back(i);
+                }
+            }
+
+            return freeParkingSpaces;
         }
 
         // Отрисовка парковочной арены
@@ -559,6 +589,13 @@ public:
         for (const auto&car:cars) {
             car.Draw(hdc);
         }
+        
+    }
+
+    void MoveCarToParking()
+    {
+        std::vector<int> freeParkingSpaces = parkingArea.FindFreeParkingSpaces(cars);
+
         
     }
 
