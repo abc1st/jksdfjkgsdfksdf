@@ -64,6 +64,7 @@ private:
     double speed = 0.0;
     double direction = 0.0;
     const double MaxSpeed = 10;
+
 public:
 
     Car() 
@@ -88,10 +89,10 @@ public:
 
 
     // Метод для перемещения машины
-    void Move(int newX, int newY, double newAngle) {
+    void Move(int newX, int newY) {
         x = newX;
         y = newY;
-        angle = newAngle;
+        //angle = newAngle;
     }
     void MoveForward(double distance) {
         x += cos(angle) * distance;
@@ -152,7 +153,7 @@ public:
 
 class ParkingArea : public GameObject {
 private:
-    const int PARKING_AREA_X = 400;
+    const int PARKING_AREA_X = 300;
     const int PARKING_AREA_Y = 0;
     const int PARKING_AREA_WIDTH = 800;
     const int PARKING_AREA_HEIGHT = 800;
@@ -162,8 +163,8 @@ private:
     const int MaxParkingSpace = 9;
 
     // Начальные координаты для парковки слева
-    int ParkingLineStartXLeft = 400;
-    int ParkingLineEndXLeft = 500;
+    int ParkingLineStartXLeft = 300;
+    int ParkingLineEndXLeft = 400;
 
     // Начальные координаты для парковки справа
     int ParkingLineStartXRight = 700;
@@ -240,9 +241,7 @@ public:
         HBRUSH GrayBrush = CreateSolidBrush(
             RGB(105, 105, 105));  // Создаем кисть для отрисовки дорог
         SelectObject(hdc, GrayBrush);
-
-        Rectangle(hdc, x, y, x + width, y + height);  // Отрисовываем главную дорогу
-        Rectangle(hdc, x + 199, y + 600, x + 391,
+        Rectangle(hdc, x , y + 600, x + 291,
             y + 800);  // Отрисовываем дорогу до парковочной области
 
         // Освобождаем ресурсы кисти
@@ -253,21 +252,12 @@ public:
             RGB(255, 255, 255));  // Создаем кисть для отрисовки разметки
         SelectObject(hdc, WhiteBrush);
 
-        // Задаем начальные координаты
-        int y1 = y, y2 = y;
-
-        // Рисуем разметку на главной дороге
-        for (int i = 0; i < 19; i++) {
-            Rectangle(hdc, x + 90, y1, x + 110, y2 + 40);
-            y1 = y2 + 60;
-            y2 += 80;
-        }
 
         // Задаем начальные координаты для дороги до парковочной области
-        int x1 = x + 209, x2 = x + 249;
+        int x1 = x , x2 = x + 49;
 
         // Рисуем разметку на дороге до парковочного места
-        for (int i = 0; i < 3; ++i) {
+        for (int i = 0; i < 5; ++i) {
             Rectangle(hdc, x1, y + 690, x2, y + 710);
             x1 = x2 + 20;
             x2 += 60;
@@ -347,6 +337,7 @@ private:
     bool isParking = false;  // Стоит ли машина на парковочном месте
     double userCarAngle = 0.0;  // Добавленная переменная для хранения угла
     // поворота машины пользователя
+ 
 
 
     double targetUserCarAngle =
@@ -355,7 +346,7 @@ private:
     double maxRotationAngle = 0.1;  // Максимальный угол поворота за один кадр
 
     // Координаты домов
-    int startX[5] = { 220, 220, 810, 810 ,810 };
+    int startX[5] = { 120, 120, 810, 810 ,810 };
     int startWidth[5] = { 170, 170, 250, 250 ,400 };
     int startY[5] = { 30, 200, 290, 500 ,9 };
     int startHeight[5] = { 150, 350, 200, 300,200 };
@@ -583,7 +574,34 @@ public:
             car.Draw(hdc);
         }
     }
+    void toParking() {
+        bool isParking[16] = { false };
+        cars.push_back(Car(0, 1100));
+        int number = cars.size() - 1;
+        cars[number].Move(400, 1100);
+        cars[number].Move(400, 900);
+        // Массивы для хранения координат машин при парковки
+        double xParLeft[8] = {};
+        double xParRight[8] = {};
+        double yPar[8] = {};
+        MidParking(xParLeft, xParRight, yPar);
+        while (!cars[number].GetisParking())
+        {
+            int index = rand() % 16;
+            for (int i = 0;i<cars.size()-2;i++) {
+                int x = cars[i].GetX();
+                int y = cars[i].GetY();
+                for (int j = 0; j < 8; j++) {
+                    if (x == xParRight[j] && y == yPar[j] || x == xParLeft[j] && y == yPar[j]) {
+                        cars[number].Move(400, y);
+                        cars[number].Move(x, y);
+                    }
+                }
+                
+            }
+        }
 
+    }
 
     // --------------------------------------------------------------------------------------------------------
     void ToggleFullscreen(HWND hwnd) {
