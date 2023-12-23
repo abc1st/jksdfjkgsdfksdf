@@ -575,12 +575,17 @@ public:
             car.Draw(hdc);
         }
     }
-    void toParking() {
+    void toParking(HWND hwnd) {
         bool isParking[16] = { false };
         cars.push_back(Car(0, 1100));
+        
         int number = cars.size() - 1;
         cars[number].Move(400, 1100);
+        UpdateWindow(hwnd);
+        InvalidateRect(hwnd, NULL, TRUE);
         cars[number].Move(400, 900);
+        UpdateWindow(hwnd);
+        InvalidateRect(hwnd, NULL, TRUE);
         // Массивы для хранения координат машин при парковки
         double xParLeft[8] = {};
         double xParRight[8] = {};
@@ -595,7 +600,12 @@ public:
                 for (int j = 0; j < 8; j++) {
                     if (x == xParRight[j] && y == yPar[j] || x == xParLeft[j] && y == yPar[j]) {
                         cars[number].Move(400, y);
+                        UpdateWindow(hwnd);
+                        InvalidateRect(hwnd, NULL, TRUE);
                         cars[number].Move(x, y);
+                        UpdateWindow(hwnd);
+                        InvalidateRect(hwnd, NULL, TRUE);
+                        cars[number].SetisParking(true);
                     }
                 }
                 
@@ -807,7 +817,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
         switch (LOWORD(wParam)) {
         case ID_BUTTON_PARKING: {
             // Вызовите функцию toParking при нажатии на кнопку
-            yard.toParking();
+            yard.toParking(hwnd);
             break;
         }
         }
