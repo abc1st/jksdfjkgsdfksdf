@@ -8,6 +8,7 @@
 #include<limits>
 #include<cstdlib>
 #define ID_TRACKBAR 101
+#define ID_BUTTON_PARKING 102
 // Определение полного экрана
 bool fullscreen = false;
 const int MAP_LEFT_BORDER = 0;
@@ -783,9 +784,33 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             GetModuleHandle(NULL),           // instance 
             NULL                             // no WM_CREATE parameter 
         );
-
+        // Создайте кнопку
+        // Создайте кнопку
+        HWND hwndButton = CreateWindow(
+            L"BUTTON",  // Predefined class; Unicode assumed 
+            L"Parking", // Button text 
+            WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,  // Styles 
+            10,         // x position 
+            10,         // y position 
+            100,        // Button width
+            30,         // Button height
+            hwnd,       // Parent window
+            (HMENU)ID_BUTTON_PARKING, // Button ID
+            GetModuleHandle(NULL),
+            NULL);      // Pointer not needed.
+        break;
         // Установка шрифта
         SendMessage(hwndText, WM_SETFONT, (WPARAM)hFont, TRUE);
+        break;
+    }
+    case WM_COMMAND: {
+        switch (LOWORD(wParam)) {
+        case ID_BUTTON_PARKING: {
+            // Вызовите функцию toParking при нажатии на кнопку
+            yard.toParking();
+            break;
+        }
+        }
         break;
     }
     case WM_HSCROLL:
