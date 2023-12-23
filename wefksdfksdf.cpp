@@ -575,37 +575,33 @@ public:
             car.Draw(hdc);
         }
     }
-    void toParking(HWND hwnd) {
+    void toParking(HDC hdc) {
         bool isParking[16] = { false };
-        cars.push_back(Car(0, 1100));
-        
-        int number = cars.size() - 1;
-        cars[number].Move(400, 1100);
-        UpdateWindow(hwnd);
-        InvalidateRect(hwnd, NULL, TRUE);
-        cars[number].Move(400, 900);
-        UpdateWindow(hwnd);
-        InvalidateRect(hwnd, NULL, TRUE);
+        Car newcar;
+        newcar.Draw(hdc);
+        //int number = cars.size() - 1;
+        newcar.Move(400, 1100);
+        newcar.Draw(hdc);
+        newcar.Move(400, 900);
+        newcar.Draw(hdc);
         // Массивы для хранения координат машин при парковки
         double xParLeft[8] = {};
         double xParRight[8] = {};
         double yPar[8] = {};
         MidParking(xParLeft, xParRight, yPar);
-        while (!cars[number].GetisParking())
+        while (!newcar.GetisParking())
         {
             int index = rand() % 16;
-            for (int i = 0;i<cars.size()-2;i++) {
+            for (int i = 0;i<cars.size()-1;i++) {
                 int x = cars[i].GetX();
                 int y = cars[i].GetY();
                 for (int j = 0; j < 8; j++) {
                     if (x == xParRight[j] && y == yPar[j] || x == xParLeft[j] && y == yPar[j]) {
-                        cars[number].Move(400, y);
-                        UpdateWindow(hwnd);
-                        InvalidateRect(hwnd, NULL, TRUE);
-                        cars[number].Move(x, y);
-                        UpdateWindow(hwnd);
-                        InvalidateRect(hwnd, NULL, TRUE);
-                        cars[number].SetisParking(true);
+                        newcar.Move(400, y);
+                        newcar.Draw(hdc);
+                        newcar.Move(x, y);
+                        newcar.Draw(hdc);
+                        newcar.SetisParking(true);
                     }
                 }
                 
@@ -726,6 +722,10 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
     case WM_PAINT:
         hdc = BeginPaint(hwnd, &ps);
         yard.Draw(hdc);
+        // Отрисовка машин
+            for (const auto& car : cars) {
+                car.Draw(hdc);
+            }
         EndPaint(hwnd, &ps);
         break;
     case WM_CREATE:
@@ -816,8 +816,9 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
     case WM_COMMAND: {
         switch (LOWORD(wParam)) {
         case ID_BUTTON_PARKING: {
+            hdc = BeginPaint(hwnd, &ps);
             // Вызовите функцию toParking при нажатии на кнопку
-            yard.toParking(hwnd);
+            yard.toParking(hdc);
             break;
         }
         }
