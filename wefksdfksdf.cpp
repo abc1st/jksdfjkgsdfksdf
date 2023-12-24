@@ -9,6 +9,7 @@
 #include<cstdlib>
 #define ID_TRACKBAR 101
 #define ID_BUTTON_PARKING 102
+#define ID_BUTTON_PARKING_EXIT 103
 // Определение полного экрана
 bool fullscreen = false;
 const int MAP_LEFT_BORDER = 0;
@@ -16,7 +17,7 @@ const int MAP_RIGHT_BORDER = 1280;
 const int MAP_TOP_BORDER = 0;
 const int MAP_BOTTOM_BORDER = 800;
 // Максимально возможное количество машин
-int MAX_CARS = 10;
+int MAX_CARS = 14;
 
 // Прототип функции работы с окном(для коректной работы)
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -68,16 +69,16 @@ private:
 
 public:
 
-    Car() 
-        :GameObject(0, 0, 100, 50), angle(0), color(RGB(0,255,0)) {};
+    Car()
+        :GameObject(0, 0, 100, 50), angle(0), color(RGB(0, 255, 0)) {};
     Car(int startX, int startY)
-        :GameObject(startX, startY, 100, 50),angle(0),
+        :GameObject(startX, startY, 100, 50), angle(0),
         color(RGB(0, 255, 0)) {}
 
     void SetisParking(bool Parking) { isParking = Parking; }
-    
+
     bool GetisParking() { return isParking; }
-   
+
     bool IsCollision(const GameObject& other) const {
         if (x < other.GetX() + other.GetWidth() &&
             x + width > other.GetX() &&
@@ -106,7 +107,7 @@ public:
         this->angle += angle;
     }
     //Устанавливаем цвет машины
-    void SetColor(COLORREF newColor) { color = newColor;}
+    void SetColor(COLORREF newColor) { color = newColor; }
 
     //Рисуем машину
     void Draw(HDC hdc)const override {
@@ -147,7 +148,7 @@ public:
         DeleteObject(WindowBrush);
     }
 
-    
+
 };
 
 
@@ -242,7 +243,7 @@ public:
         HBRUSH GrayBrush = CreateSolidBrush(
             RGB(105, 105, 105));  // Создаем кисть для отрисовки дорог
         SelectObject(hdc, GrayBrush);
-        Rectangle(hdc, x , y + 600, x + 291,
+        Rectangle(hdc, x, y + 600, x + 291,
             y + 800);  // Отрисовываем дорогу до парковочной области
 
         // Освобождаем ресурсы кисти
@@ -255,7 +256,7 @@ public:
 
 
         // Задаем начальные координаты для дороги до парковочной области
-        int x1 = x , x2 = x + 49;
+        int x1 = x, x2 = x + 49;
 
         // Рисуем разметку на дороге до парковочного места
         for (int i = 0; i < 5; ++i) {
@@ -276,8 +277,8 @@ private:
     COLORREF color;
 
 public:
-    House(int StartX,int StartY,int StartWidth,int StarttHeight,COLORREF houseColor) 
-        :GameObject(StartX,StartY,StartWidth, StarttHeight),color(houseColor) {}
+    House(int StartX, int StartY, int StartWidth, int StarttHeight, COLORREF houseColor)
+        :GameObject(StartX, StartY, StartWidth, StarttHeight), color(houseColor) {}
 
     // Метод для отрисовки дома
     void Draw(HDC hdc) const override {
@@ -289,7 +290,7 @@ public:
         // Рисуем дом
         Rectangle(hdc, x, y, x + width, y + height);
 
-         // Очищаем ресурсы кисти
+        // Очищаем ресурсы кисти
         DeleteObject(hBrush);
     }
 };
@@ -326,11 +327,11 @@ public:
     }
 };
 
-std::vector<Car>cars;
+
 
 class Yard : protected ParkingArea {
 private:
-  
+    std::vector<Car>cars;
     ParkingArea parkingArea;  // Создаем объект парковочной области
     Road road;                  // Создаем объект дороги
     Obstacle obstacle; // Добавляем препятствие
@@ -338,7 +339,10 @@ private:
     bool isParking = false;  // Стоит ли машина на парковочном месте
     double userCarAngle = 0.0;  // Добавленная переменная для хранения угла
     // поворота машины пользователя
- 
+    bool usedxParLeft1[8] = { false };
+    bool usedxParRight1[8] = { false };
+    bool usedyParLeft1[8] = { false };
+    bool usedyParRight1[8] = { false };
 
 
     double targetUserCarAngle =
@@ -355,28 +359,29 @@ private:
 public:
     Yard() {
         srand(static_cast<unsigned>(time(nullptr)));  // Сбиваем значения
-       
+        //Генерируем возможное препядствие
+        GenerateRandomObstacle();
         //Генерируем машины
         GenerateRandomCars(MAX_CARS);
 
         //Добавляем дома
-        for (int i = 0; i <5; i++) {
+        for (int i = 0; i < 5; i++) {
             int randColor = RGB(rand() % 255, rand() % 255, rand() % 255);
             if (i < 4)
             {
-                houses.push_back(House(startX[i], startY[i], startWidth[i], startHeight[i],randColor));
+                houses.push_back(House(startX[i], startY[i], startWidth[i], startHeight[i], randColor));
             }
             else {
                 randColor = RGB(255, 255, 255);
-                houses.push_back(House(startX[i],startY[i],startWidth[i],startHeight[i],randColor));
+                houses.push_back(House(startX[i], startY[i], startWidth[i], startHeight[i], randColor));
             }
         }
-        //Генерируем возможное препядствие
-        GenerateRandomObstacle();
+        
     }
 
     // Метод для генерации машин на случайных местах
     void GenerateRandomCars(int numCars) {
+        cars.resize(numCars);
         // Задаем константы для настроек генерации машин
         const int MaxCars = 8;
         const int MaxParkingLines = 16;
@@ -394,17 +399,28 @@ public:
         bool usedyParLeft[MaxCars] = { false };
         bool usedyParRight[MaxCars] = { false };
         bool parked[MaxParkingLines] = { false };
+        for (int i = 0; i < 8; i++) {
+            usedxParLeft1[i] = { false };
+            usedxParRight1[i] = { false };
+            usedyParLeft1[i] = { false };
+            usedyParRight1[i] = { false };
+        }
+        
         // Получение координат середины паркоыочных мест
         MidParking(xParLeft, xParRight, yPar);
-
+        for (const auto& car : cars)
+        {
+            cars.pop_back();
+        }
         int i = 0;
         //Цикл для генерации машин
         while (i < numCars)
         {
             int index = rand() % MaxParkingLines - 1;
-            int randColor = RGB(rand() % 255, rand() % 255, rand() % 255);
+            
             if (!parked[index]) {
                 {
+                    int randColor = RGB(rand() % 255, rand() % 255, rand() % 255);
                     int xrand = rand() % MaxCars;
                     int yrand = rand() % MaxCars;
                     double xplace = (index % 2 == 0) ? xParLeft[xrand] : xParRight[xrand];
@@ -419,17 +435,19 @@ public:
                                 cars[i].SetColor(randColor);
                                 parked[index] = true;
                                 usedxParLeft[xrand] = true;
+                                usedxParLeft1[xrand] = true;
                                 usedyParLeft[yrand] = true;
+                                usedyParLeft1[yrand] = true;
                                 i++;
                             }
                             else {
                                 cars.pop_back();
                             }
-                            
+
 
                         }
                     }
-                    else 
+                    else
                         if (!usedxParRight[xrand] && !usedyParRight[yrand])
                         {
                             cars.push_back(
@@ -439,17 +457,25 @@ public:
                                 cars[i].SetColor(randColor);
                                 parked[index] = true;
                                 usedxParRight[xrand] = true;
+                                usedxParRight1[xrand] = true;
                                 usedyParRight[yrand] = true;
+                                usedyParRight1[yrand] = true;
                                 i++;
                             }
                             else {
                                 cars.pop_back();
                             }
                         }
-                    
+
                 }
             }
         }
+      /*  for (int i = 0; i < numCars; i++) {
+            usedxParLeft1[i] = usedxParLeft[i];
+            usedxParRight1[i] = usedxParRight[i];
+            usedyParLeft1[i] = usedyParLeft[i];
+            usedyParRight1[i] = usedyParRight[i];
+        }*/
     }
 
     // Метод для генерации случайного препятствия
@@ -457,7 +483,7 @@ public:
     void GenerateRandomObstacle() {
         if (rand() % 100 < 99) { // Настройка шанса генерации препядствия
             obstacle.Reset();
-            int x = 200 + rand() % 600;
+            int x = 300 + rand() % 500;
             int y = rand() % 600;
             int width = 30; // Ширина препятствия
             int height = 30; // Высота препятствия
@@ -466,7 +492,7 @@ public:
             obstacle.SetWidth(width);
             obstacle.SetHeight(height);
             // Проверка на столкновение с машинами
-            for (const auto&car:cars)
+            for (const auto& car : cars)
             {
                 if (obstacle.IsCollision(car))
                 {
@@ -560,8 +586,8 @@ public:
     double Lerp(double a, double b, double t) {
         return a + t * (b - a);
     }
-   
-    void Draw(HDC hdc)const  {
+
+    void Draw(HDC hdc)const {
         parkingArea.Draw(hdc);  // Отображение парковочной площадки
         road.Draw(hdc);  // Отображение дорог
         obstacle.Draw(hdc);
@@ -571,45 +597,112 @@ public:
         }
 
         // Отображение машин
-        for (const auto&car:cars) {
+        for (const auto& car : cars) {
             car.Draw(hdc);
         }
     }
     void toParking(HDC hdc) {
-        bool isParking[16] = { false };
-        Car newcar;
-        newcar.Draw(hdc);
-        //int number = cars.size() - 1;
-        newcar.Move(400, 1100);
-        newcar.Draw(hdc);
-        newcar.Move(400, 900);
-        newcar.Draw(hdc);
-        // Массивы для хранения координат машин при парковки
+       
+        cars.push_back(Car(0, 1100));
+        int index = cars.size() - 1;
+        if (index < 16) {
+            // Массивы для хранения координат машин при парковки
+            double xParLeft[8] = {};
+            double xParRight[8] = {};
+            double yPar[8] = {};
+            MidParking(xParLeft, xParRight, yPar);
+            while (!cars[index].GetisParking())
+            {
+                //int index = rand() % 16;
+                for (int i = 0; i < 8; i++) {
+                    for (int j = 0; j < 8; j++) {
+                        if (!usedxParLeft1[i] && !usedyParLeft1[j]) {
+
+                            cars[index].Move(xParLeft[i] - 50, yPar[j] - 25);
+                            cars[index].SetisParking(true);
+                            usedxParLeft1[i] = true;
+                            usedyParLeft1[j] = true;
+                            break;
+
+                        }
+                        else if (!usedxParRight1[i] && !usedyParRight1[j]) {
+
+                            cars[index].Move(xParRight[i] - 50, yPar[j] - 25);
+                            cars[index].SetisParking(true);
+                            usedxParRight1[i] = true;
+                            usedyParRight1[j] = true;
+                            break;
+                        }
+
+                    }
+                    if (cars[index].GetisParking()) { break; }
+                }
+            }
+
+        }
+        else {
+            cars.pop_back();
+        }
+
+    }
+    void exitParking(HDC hdc) {
+        int index = cars.size() - 1;
+        int X = cars[index].GetX();
+        int Y = cars[index].GetY();
+        //cars[index].SetisParking(false);
+       /* for (int i = 0; i < 8; i++) {
+            for (int j = 0; j < 8; j++) {
+
+            }
+        }*/
         double xParLeft[8] = {};
         double xParRight[8] = {};
         double yPar[8] = {};
         MidParking(xParLeft, xParRight, yPar);
-        while (!newcar.GetisParking())
-        {
-            int index = rand() % 16;
-            for (int i = 0;i<cars.size()-1;i++) {
-                int x = cars[i].GetX();
-                int y = cars[i].GetY();
+        
+        if (X < 400) {
+            for (int i = 0; i < 8; i++) {
                 for (int j = 0; j < 8; j++) {
-                    if (x == xParRight[j] && y == yPar[j] || x == xParLeft[j] && y == yPar[j]) {
-                        newcar.Move(400, y);
-                        newcar.Draw(hdc);
-                        newcar.Move(x, y);
-                        newcar.Draw(hdc);
-                        newcar.SetisParking(true);
+                    if (X + 50 == xParLeft[i] && Y + 25 == yPar[j]) {
+                        usedxParLeft1[i] = false;
+                        usedyParLeft1[j] = false;
                     }
                 }
-                
+            }
+            for (int i = 0; i < 5; i++) {
+                cars[index].Move(X + 10, Y);
+                cars[index].Draw(hdc);
+                X = cars[index].GetX() + 10;
+                Y = cars[index].GetY();
             }
         }
-
-    }
-
+        else {
+            for (int i = 0; i < 8; i++) {
+                for (int j = 0; j < 8; j++) {
+                    if (X + 50 == xParRight[i] && Y + 25 == yPar[j]) {
+                        usedxParRight1[i] = false;
+                        usedyParRight1[j] = false;
+                    }
+                }
+            }
+            for (int i = 0; i < 5; i++) {
+                cars[index].Move(X - 10, Y);
+                X = cars[index].GetX() - 10;
+                Y = cars[index].GetY();
+            }
+        }
+        while (Y < 800) {
+            cars[index].Move(X, Y + 10);
+            X = cars[index].GetX();
+            Y = cars[index].GetY() + 10;
+        }
+        for (int i = 0; i < 8; i++) {
+            cars[index].Move(X - 10, Y);
+            X = cars[index].GetX() - 10;
+            Y = cars[index].GetY();
+        }
+        cars.pop_back();
+}
     // --------------------------------------------------------------------------------------------------------
     void ToggleFullscreen(HWND hwnd) {
         fullscreen = !fullscreen;
@@ -722,10 +815,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
     case WM_PAINT:
         hdc = BeginPaint(hwnd, &ps);
         yard.Draw(hdc);
-        // Отрисовка машин
-            for (const auto& car : cars) {
-                car.Draw(hdc);
-            }
         EndPaint(hwnd, &ps);
         break;
     case WM_CREATE:
@@ -794,18 +883,30 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             GetModuleHandle(NULL),           // instance 
             NULL                             // no WM_CREATE parameter 
         );
-        // Создайте кнопку
-        // Создайте кнопку
+        
         HWND hwndButton = CreateWindow(
             L"BUTTON",  // Predefined class; Unicode assumed 
             L"Parking", // Button text 
             WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,  // Styles 
-            10,         // x position 
-            10,         // y position 
+            850,         // x position 
+            180,         // y position 
             100,        // Button width
             30,         // Button height
             hwnd,       // Parent window
             (HMENU)ID_BUTTON_PARKING, // Button ID
+            GetModuleHandle(NULL),
+            NULL);      // Pointer not needed.
+
+        HWND hwndButtonleft = CreateWindow(
+            L"BUTTON",  // Predefined class; Unicode assumed 
+            L"Left Parking", // Button text 
+            WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,  // Styles 
+            1050,         // x position 
+            180,         // y position 
+            100,        // Button width
+            30,         // Button height
+            hwnd,       // Parent window
+            (HMENU)ID_BUTTON_PARKING_EXIT, // Button ID
             GetModuleHandle(NULL),
             NULL);      // Pointer not needed.
         break;
@@ -817,8 +918,17 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
         switch (LOWORD(wParam)) {
         case ID_BUTTON_PARKING: {
             hdc = BeginPaint(hwnd, &ps);
-            // Вызовите функцию toParking при нажатии на кнопку
             yard.toParking(hdc);
+            EndPaint(hwnd, &ps);
+            InvalidateRect(hwnd, NULL, TRUE);
+            break;
+        }
+        case ID_BUTTON_PARKING_EXIT: {
+            
+            hdc = BeginPaint(hwnd, &ps);
+            yard.exitParking(hdc);
+            EndPaint(hwnd, &ps);
+            InvalidateRect(hwnd, NULL, TRUE);
             break;
         }
         }
@@ -837,7 +947,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             COLORREF backgroundColor;
 
             // Изменение количества машин на парковке
-            int numCars;
+            int numCars = 0;
 
             if (pos >= 8 && pos <= 16) {
                 // Меньше машин в период с 8 до 16s
@@ -847,10 +957,10 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
                 // Больше машин в остальное время
                 numCars = MAX_CARS - 1;  // Оставляем одно свободное место
             }
-            cars.resize(numCars);
+            //cars.resize(numCars);
             yard.GenerateRandomCars(numCars);
             hdc = BeginPaint(hwnd, &ps);
-            yard.Draw(hdc);
+            //yard.Draw(hdc);
             EndPaint(hwnd, &ps);
             if (pos <= 12) {
                 // Утро и день
