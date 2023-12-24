@@ -18,6 +18,7 @@ const int MAP_TOP_BORDER = 0;
 const int MAP_BOTTOM_BORDER = 800;
 // Максимально возможное количество машин
 int MAX_CARS = 14;
+bool MoveToParking = false;
 
 // Прототип функции работы с окном(для коректной работы)
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -89,26 +90,19 @@ public:
         return false; // Нет столкновения
     }
 
-
     // Метод для перемещения машины
-    void Move(int newX, int newY) {
+    void Move(int newX, int newY,double newAngle,HWND hwnd) {
         x = newX;
         y = newY;
-        //angle = newAngle;
-    }
-    void MoveForward(double distance) {
-        x += cos(angle) * distance;
-        y += sin(angle) * distance;
-    }
-    void TurnLeft(double angle) {
-        this->angle -= angle;
-    }
-    void TurnRight(double angle) {
-        this->angle += angle;
+        angle = newAngle;
+        InvalidateRect(hwnd, NULL, TRUE);
+        Sleep(30);
+        UpdateWindow(hwnd);
+        
     }
     //Устанавливаем цвет машины
     void SetColor(COLORREF newColor) { color = newColor; }
-
+    // Метод для установки скорости и направления движения
     //Рисуем машину
     void Draw(HDC hdc)const override {
         HBRUSH ColorBrush = CreateSolidBrush(color);
@@ -150,8 +144,6 @@ public:
 
 
 };
-
-
 
 class ParkingArea : public GameObject {
 private:
@@ -337,18 +329,12 @@ private:
     Obstacle obstacle; // Добавляем препятствие
     std::vector<House> houses;  // Вектор для хранения домов
     bool isParking = false;  // Стоит ли машина на парковочном месте
-    double userCarAngle = 0.0;  // Добавленная переменная для хранения угла
+    
     // поворота машины пользователя
     bool usedxParLeft1[8] = { false };
     bool usedxParRight1[8] = { false };
     bool usedyParLeft1[8] = { false };
     bool usedyParRight1[8] = { false };
-
-
-    double targetUserCarAngle =
-        0.0;  // Добавленная переменная для хранения целевого угла
-    double userCarRotationSpeed = 0.1;  // Скорость поворота машины
-    double maxRotationAngle = 0.1;  // Максимальный угол поворота за один кадр
 
     // Координаты домов
     int startX[5] = { 120, 120, 810, 810 ,810 };
@@ -470,12 +456,6 @@ public:
                 }
             }
         }
-      /*  for (int i = 0; i < numCars; i++) {
-            usedxParLeft1[i] = usedxParLeft[i];
-            usedxParRight1[i] = usedxParRight[i];
-            usedyParLeft1[i] = usedyParLeft[i];
-            usedyParRight1[i] = usedyParRight[i];
-        }*/
     }
 
     // Метод для генерации случайного препятствия
@@ -601,10 +581,13 @@ public:
             car.Draw(hdc);
         }
     }
-    void toParking(HDC hdc) {
+    void toParking(HWND hwnd) {
        
-        cars.push_back(Car(0, 1100));
+        cars.push_back(Car(0, 725));
         int index = cars.size() - 1;
+        int X = cars[index].GetX();
+        int Y = cars[index].GetY();
+        double CarAngle = 0.0;
         if (index < 16) {
             // Массивы для хранения координат машин при парковки
             double xParLeft[8] = {};
@@ -617,20 +600,49 @@ public:
                 for (int i = 0; i < 8; i++) {
                     for (int j = 0; j < 8; j++) {
                         if (!usedxParLeft1[i] && !usedyParLeft1[j]) {
-
-                            cars[index].Move(xParLeft[i] - 50, yPar[j] - 25);
+                            for (int i = 0; i < 55; i++) {
+                                
+                                cars[index].Move(X + 10, Y,CarAngle,hwnd);
+                                X = cars[index].GetX();
+                            }
+                            while(Y+20>yPar[j]) {
+                                
+                                
+                                cars[index].Move(X, Y - 10,180, hwnd);
+                                Y = cars[index].GetY();
+                            }
+                            for (int i = 0; i < 25; i++) {
+                                
+                                cars[index].Move(X - 10, Y,0, hwnd);
+                                X = cars[index].GetX();
+                            }
+                            cars[index].Move(xParLeft[i] - 50, yPar[j] - 25, CarAngle, hwnd);
                             cars[index].SetisParking(true);
                             usedxParLeft1[i] = true;
                             usedyParLeft1[j] = true;
+                            MoveToParking = false;
                             break;
 
                         }
                         else if (!usedxParRight1[i] && !usedyParRight1[j]) {
+                            for (int i = 0; i < 55; i++) {
 
-                            cars[index].Move(xParRight[i] - 50, yPar[j] - 25);
+                                cars[index].Move(X + 10, Y, CarAngle, hwnd);
+                                X = cars[index].GetX();
+                            }
+                            while (Y + 20 > yPar[j]) {
+                                cars[index].Move(X, Y - 10, CarAngle, hwnd);
+                                Y = cars[index].GetY();
+                            }
+                            for (int i = 0; i < 15; i++) {
+                                cars[index].Move(X + 10, Y, CarAngle, hwnd);
+                                X = cars[index].GetX();
+                            }
+                            cars[index].Move(xParRight[i] - 50, yPar[j] - 25, CarAngle, hwnd);
                             cars[index].SetisParking(true);
                             usedxParRight1[i] = true;
                             usedyParRight1[j] = true;
+                            MoveToParking = false;
                             break;
                         }
 
@@ -645,16 +657,13 @@ public:
         }
 
     }
-    void exitParking(HDC hdc) {
+    void exitParking(HWND hwnd) {
         int index = cars.size() - 1;
         int X = cars[index].GetX();
         int Y = cars[index].GetY();
-        //cars[index].SetisParking(false);
-       /* for (int i = 0; i < 8; i++) {
-            for (int j = 0; j < 8; j++) {
-
-            }
-        }*/
+        cars[index].SetisParking(false);
+        double CarAngle = 0.0;
+        
         double xParLeft[8] = {};
         double xParRight[8] = {};
         double yPar[8] = {};
@@ -669,9 +678,9 @@ public:
                     }
                 }
             }
-            for (int i = 0; i < 5; i++) {
-                cars[index].Move(X + 10, Y);
-                cars[index].Draw(hdc);
+            for (int i = 0; i < 7; i++) {
+                cars[index].Move(X + 10, Y, CarAngle, hwnd);
+               
                 X = cars[index].GetX() + 10;
                 Y = cars[index].GetY();
             }
@@ -685,19 +694,19 @@ public:
                     }
                 }
             }
-            for (int i = 0; i < 5; i++) {
-                cars[index].Move(X - 10, Y);
+            for (int i = 0; i < 8; i++) {
+                cars[index].Move(X - 10, Y, CarAngle, hwnd);
                 X = cars[index].GetX() - 10;
                 Y = cars[index].GetY();
             }
         }
-        while (Y < 800) {
-            cars[index].Move(X, Y + 10);
+        while (Y < 630) {
+            cars[index].Move(X, Y + 10, CarAngle, hwnd);
             X = cars[index].GetX();
             Y = cars[index].GetY() + 10;
         }
-        for (int i = 0; i < 8; i++) {
-            cars[index].Move(X - 10, Y);
+        for (int i = 0; i < 50; i++) {
+            cars[index].Move(X - 10, Y, CarAngle, hwnd);
             X = cars[index].GetX() - 10;
             Y = cars[index].GetY();
         }
@@ -732,8 +741,6 @@ public:
 
         return RGB(r, g, b);
     }
-
-
 };
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
@@ -802,14 +809,9 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
     HDC hdc;
     bool isSliderMoving = false;
     switch (uMsg) {
-
-
-
     case WM_KEYDOWN:
         if (wParam == VK_F11) {
             yard.ToggleFullscreen(hwnd);
-            InvalidateRect(hwnd, NULL, TRUE);
-            break;
             InvalidateRect(hwnd, NULL, TRUE);
             break;
     case WM_PAINT:
@@ -917,17 +919,13 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
     case WM_COMMAND: {
         switch (LOWORD(wParam)) {
         case ID_BUTTON_PARKING: {
-            hdc = BeginPaint(hwnd, &ps);
-            yard.toParking(hdc);
-            EndPaint(hwnd, &ps);
+            yard.toParking(hwnd);
             InvalidateRect(hwnd, NULL, TRUE);
             break;
         }
         case ID_BUTTON_PARKING_EXIT: {
             
-            hdc = BeginPaint(hwnd, &ps);
-            yard.exitParking(hdc);
-            EndPaint(hwnd, &ps);
+            yard.exitParking(hwnd);
             InvalidateRect(hwnd, NULL, TRUE);
             break;
         }
