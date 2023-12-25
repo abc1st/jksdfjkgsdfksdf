@@ -7,6 +7,7 @@
 #include<ctime>
 #include<limits>
 #include<cstdlib>
+#define M_PI 3.14159265358979323846
 #define ID_TRACKBAR 101
 #define ID_BUTTON_PARKING 102
 #define ID_BUTTON_PARKING_EXIT 103
@@ -56,6 +57,8 @@ public:
 
     void SetHeight(int value) { height = value; }
 
+
+
     // Виртуальная функция для отрисовки объекта
     virtual void Draw(HDC hdc) const = 0;
 };
@@ -92,17 +95,19 @@ public:
     }
 
     // Метод для перемещения машины
-    void Move(int newX, int newY,double newAngle,HWND hwnd) {
+    void Move(int newX, int newY, double newAngle, HWND hwnd) {
         x = newX;
         y = newY;
-        angle = newAngle;
+        angle = newAngle * (M_PI / 180.0);
         InvalidateRect(hwnd, NULL, TRUE);
         Sleep(50);
         UpdateWindow(hwnd);
-        
+
     }
     //Устанавливаем цвет машины
     void SetColor(COLORREF newColor) { color = newColor; }
+
+    void SetAngle(double value) { angle = value * (M_PI / 180); }
     // Метод для установки скорости и направления движения
     //Рисуем машину
     void Draw(HDC hdc)const override {
@@ -330,7 +335,7 @@ private:
     Obstacle obstacle; // Добавляем препятствие
     std::vector<House> houses;  // Вектор для хранения домов
     bool isParking = false;  // Стоит ли машина на парковочном месте
-    
+
     // поворота машины пользователя
     bool usedxParLeft1[8] = { false };
     bool usedxParRight1[8] = { false };
@@ -363,7 +368,7 @@ public:
                 houses.push_back(House(startX[i], startY[i], startWidth[i], startHeight[i], randColor));
             }
         }
-        
+
     }
 
     // Метод для генерации машин на случайных местах
@@ -392,7 +397,7 @@ public:
             usedyParLeft1[i] = { false };
             usedyParRight1[i] = { false };
         }
-        
+
         // Получение координат середины паркоыочных мест
         MidParking(xParLeft, xParRight, yPar);
         for (const auto& car : cars)
@@ -404,7 +409,7 @@ public:
         while (i < numCars)
         {
             int index = rand() % MaxParkingLines - 1;
-            
+
             if (!parked[index]) {
                 {
                     int randColor = RGB(rand() % 255, rand() % 255, rand() % 255);
@@ -420,6 +425,7 @@ public:
                             if (!cars[i].IsCollision(obstacle)) {
                                 cars[i].SetisParking(true);
                                 cars[i].SetColor(randColor);
+                                cars[i].SetAngle(180);
                                 parked[index] = true;
                                 usedxParLeft[xrand] = true;
                                 usedxParLeft1[xrand] = true;
@@ -468,7 +474,7 @@ public:
     void GenerateRandomObstacle() {
         if (rand() % 100 < 99) { // Настройка шанса генерации препядствия
             obstacle.Reset();
-            int x = 300 + rand() % 500;
+            int x = 300 + rand() % 400;
             int y = rand() % 600;
             int width = 30; // Ширина препятствия
             int height = 30; // Высота препятствия
@@ -587,7 +593,7 @@ public:
         }
     }
     void toParking(HWND hwnd) {
-       
+
         cars.push_back(Car(0, 725));
         int index = cars.size() - 1;
         int X = cars[index].GetX();
@@ -599,11 +605,14 @@ public:
         cars[index].SetColor(randColor);
         int schet = 0;
         for (int i = 0; i < 8; i++) {
-            if (usedxParLeft1[i] && usedyParLeft1[i] || usedxParRight1[i] && usedyParRight1[i]) {
+            if (usedxParLeft1[i] && usedyParLeft1[i]) {
+                schet++;
+            }
+            if (usedxParRight1[i] && usedyParRight1[i]) {
                 schet++;
             }
         }
-        if (index < 16&&schet<16) {
+        if (index < 16 && schet < 16) {
             // Массивы для хранения координат машин при парковки
             double xParLeft[8] = {};
             double xParRight[8] = {};
@@ -615,33 +624,33 @@ public:
                 for (int i = 0; i < 8; i++) {
                     for (int j = 0; j < 8; j++) {
                         if (!usedxParLeft1[i] && !usedyParLeft1[j]) {
-                            while(X+20<400) {
+                            while (X + 20 < 500) {
                                 prevX = cars[index].GetX();
                                 prevY = cars[index].GetY();
-                                cars[index].Move(prevX + 10, prevY,CarAngle,hwnd);
+                                cars[index].Move(prevX + 10, prevY, CarAngle, hwnd);
                                 if (CheckCollision(cars[index])) {
                                     cars[index].Move(prevX, prevY, CarAngle, hwnd);
                                     cars[index].Move(prevX, prevY + 10, CarAngle, hwnd);
                                 }
                                 X = cars[index].GetX();
                             }
-                            while(Y>yPar[j]) {
-                               
+                            while (Y +20> yPar[j]) {
+
                                 prevX = cars[index].GetX();
                                 prevY = cars[index].GetY();
-                                cars[index].Move(prevX, prevY - 10,100, hwnd);
+                                cars[index].Move(prevX, prevY - 10, 270, hwnd);
                                 if (CheckCollision(cars[index])) {
-                                    cars[index].Move(prevX, prevY, 100, hwnd);
-                                    cars[index].Move(prevX + 10, prevY, 100, hwnd);
+                                    cars[index].Move(prevX, prevY, 270, hwnd);
+                                    cars[index].Move(prevX - 10, prevY, 270, hwnd);
                                 }
                                 Y = cars[index].GetY();
                             }
-                            while(X>300) {
-                                
-                                cars[index].Move(X - 10, Y,200, hwnd);
+                            while (X > 300) {
+
+                                cars[index].Move(X - 10, Y, 180, hwnd);
                                 X = cars[index].GetX();
                             }
-                            cars[index].Move(xParLeft[i] - 50, yPar[j] - 25, 200, hwnd);
+                            cars[index].Move(xParLeft[i] - 50, yPar[j] - 25, 180, hwnd);
                             cars[index].SetisParking(true);
                             usedxParLeft1[i] = true;
                             usedyParLeft1[j] = true;
@@ -650,17 +659,31 @@ public:
 
                         }
                         else if (!usedxParRight1[i] && !usedyParRight1[j]) {
-                            for (int i = 0; i < 55; i++) {
-
-                                cars[index].Move(X + 10, Y, CarAngle, hwnd);
+                            while (X + 20 < 500) {
+                                prevX = cars[index].GetX();
+                                prevY = cars[index].GetY();
+                                cars[index].Move(prevX + 10, prevY, CarAngle, hwnd);
+                                if (CheckCollision(cars[index])) {
+                                    cars[index].Move(prevX, prevY, CarAngle, hwnd);
+                                    cars[index].Move(prevX, prevY + 10, CarAngle, hwnd);
+                                    
+                                }
                                 X = cars[index].GetX();
                             }
-                            while (Y + 20 > yPar[j]) {
-                                cars[index].Move(X, Y - 10, CarAngle, hwnd);
+                            while (Y+20 > yPar[j]) {
+
+                                prevX = cars[index].GetX();
+                                prevY = cars[index].GetY();
+                                cars[index].Move(prevX, prevY - 10, 270, hwnd);
+                                if (CheckCollision(cars[index])) {
+                                    cars[index].Move(prevX, prevY, 270, hwnd);
+                                    cars[index].Move(prevX + 10, prevY, 270, hwnd);
+                                }
                                 Y = cars[index].GetY();
                             }
-                            for (int i = 0; i < 15; i++) {
-                                cars[index].Move(X + 10, Y, CarAngle, hwnd);
+                            while (X < 700) {
+
+                                cars[index].Move(X + 10, Y, 0, hwnd);
                                 X = cars[index].GetX();
                             }
                             cars[index].Move(xParRight[i] - 50, yPar[j] - 25, CarAngle, hwnd);
@@ -686,57 +709,91 @@ public:
         int index = cars.size() - 1;
         int X = cars[index].GetX();
         int Y = cars[index].GetY();
-        cars[index].SetisParking(false);
-        double CarAngle = 0.0;
+        int prevX = cars[index].GetX();
+        int prevY = cars[index].GetY();
         
+        double CarAngle = 0.0;
+
         double xParLeft[8] = {};
         double xParRight[8] = {};
         double yPar[8] = {};
         MidParking(xParLeft, xParRight, yPar);
-        
-        if (X < 400) {
-            for (int i = 0; i < 8; i++) {
-                for (int j = 0; j < 8; j++) {
-                    if (X + 50 == xParLeft[i] && Y + 25 == yPar[j]) {
-                        usedxParLeft1[i] = false;
-                        usedyParLeft1[j] = false;
+        if (index > 0) {
+            cars[index].SetisParking(false);
+            if (X < 400) {
+                for (int i = 0; i < 8; i++) {
+                    for (int j = 0; j < 8; j++) {
+                        if (X + 50 == xParLeft[i] && Y + 25 == yPar[j]) {
+                            usedxParLeft1[i] = false;
+                            usedyParLeft1[j] = false;
+                        }
                     }
                 }
-            }
-            for (int i = 0; i < 7; i++) {
-                cars[index].Move(X + 10, Y, CarAngle, hwnd);
-               
-                X = cars[index].GetX() + 10;
-                Y = cars[index].GetY();
-            }
-        }
-        else {
-            for (int i = 0; i < 8; i++) {
-                for (int j = 0; j < 8; j++) {
-                    if (X + 50 == xParRight[i] && Y + 25 == yPar[j]) {
-                        usedxParRight1[i] = false;
-                        usedyParRight1[j] = false;
+                while(X<400) {
+                    prevX = cars[index].GetX();
+                    prevY = cars[index].GetY();
+                    cars[index].Move(prevX + 10, prevY, 180, hwnd);
+                    if (CheckCollision(cars[index])) {
+                        cars[index].Move(prevX, prevY, 180, hwnd);
+                        cars[index].Move(prevX, prevY + 10, 180, hwnd);
                     }
+                    X = cars[index].GetX();
+                }
+                while (Y < 630) {
+                    prevX = cars[index].GetX();
+                    prevY = cars[index].GetY();
+                    cars[index].Move(prevX, prevY + 10, 90, hwnd);
+                    if (CheckCollision(cars[index])) {
+                        cars[index].Move(prevX, prevY, 90, hwnd);
+                        cars[index].Move(prevX + 10, prevY, 90, hwnd);
+                    }
+                    Y = cars[index].GetY();
                 }
             }
-            for (int i = 0; i < 8; i++) {
-                cars[index].Move(X - 10, Y, CarAngle, hwnd);
-                X = cars[index].GetX() - 10;
-                Y = cars[index].GetY();
+            else {
+                for (int i = 0; i < 8; i++) {
+                    for (int j = 0; j < 8; j++) {
+                        if (X + 50 == xParRight[i] && Y + 25 == yPar[j]) {
+                            usedxParRight1[i] = false;
+                            usedyParRight1[j] = false;
+                        }
+                    }
+                }
+                while(X>600) {
+                    prevX = cars[index].GetX();
+                    prevY = cars[index].GetY();
+                    cars[index].Move(prevX - 10, prevY, 0, hwnd);
+                    if (CheckCollision(cars[index])) {
+                        cars[index].Move(prevX, prevY, 0, hwnd);
+                        cars[index].Move(prevX, prevY - 10, 0, hwnd);
+                    }
+                    X = cars[index].GetX();
+                }
+                while (Y < 630) {
+                    prevX = cars[index].GetX();
+                    prevY = cars[index].GetY();
+                    cars[index].Move(prevX, prevY + 10, 90, hwnd);
+                    if (CheckCollision(cars[index])) {
+                        cars[index].Move(prevX, prevY, 90, hwnd);
+                        cars[index].Move(prevX - 10, prevY, 90, hwnd);
+                    }
+                    Y = cars[index].GetY();
+                }
             }
+            
+            while(X>10) {
+                prevX = cars[index].GetX();
+                prevY = cars[index].GetY();
+                cars[index].Move(prevX - 10, prevY, 180, hwnd);
+                if (CheckCollision(cars[index])) {
+                    cars[index].Move(prevX, prevY, 180, hwnd);
+                    cars[index].Move(prevX, prevY - 10, 180, hwnd);
+                }
+                X= cars[index].GetX();
+            }
+            cars.pop_back();
         }
-        while (Y < 630) {
-            cars[index].Move(X, Y + 10, CarAngle, hwnd);
-            X = cars[index].GetX();
-            Y = cars[index].GetY() + 10;
-        }
-        for (int i = 0; i < 40; i++) {
-            cars[index].Move(X - 10, Y, CarAngle, hwnd);
-            X = cars[index].GetX() - 10;
-            Y = cars[index].GetY();
-        }
-        cars.pop_back();
-}
+    }
     // --------------------------------------------------------------------------------------------------------
     void ToggleFullscreen(HWND hwnd) {
         fullscreen = !fullscreen;
@@ -910,12 +967,12 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             GetModuleHandle(NULL),           // instance 
             NULL                             // no WM_CREATE parameter 
         );
-        
+
         HWND hwndButton = CreateWindow(
             L"BUTTON",  // Predefined class; Unicode assumed 
             L"Parking", // Button text 
             WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,  // Styles 
-            800,         // x position 
+            810,         // x position 
             180,         // y position 
             100,        // Button width
             30,         // Button height
@@ -928,7 +985,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             L"BUTTON",  // Predefined class; Unicode assumed 
             L"Left Parking", // Button text 
             WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,  // Styles 
-            950,         // x position 
+            960,         // x position 
             180,         // y position 
             100,        // Button width
             30,         // Button height
@@ -940,7 +997,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             L"BUTTON",  // Predefined class; Unicode assumed 
             L"Exit", // Button text 
             WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,  // Styles 
-            1100,         // x position 
+            1110,         // x position 
             180,         // y position 
             100,        // Button width
             30,         // Button height
@@ -961,7 +1018,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             break;
         }
         case ID_BUTTON_PARKING_EXIT: {
-            
+
             yard.exitParking(hwnd);
             InvalidateRect(hwnd, NULL, TRUE);
             break;
@@ -987,7 +1044,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 
             // Изменение количества машин на парковке
             int numCars = 0;
-            
+
             if (pos >= 8 && pos <= 16) {
                 // Меньше машин в период с 8 до 16s
                 numCars = MAX_CARS / 2;
