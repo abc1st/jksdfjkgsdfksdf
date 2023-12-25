@@ -20,7 +20,6 @@ const int MAP_TOP_BORDER = 0;
 const int MAP_BOTTOM_BORDER = 800;
 // Максимально возможное количество машин
 int MAX_CARS = 14;
-bool MoveToParking = false;
 
 // Прототип функции работы с окном(для коректной работы)
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -68,9 +67,6 @@ private:
     double angle; // Угол поворота машины
     COLORREF color; // Для хранения цвета машины
     bool isParking = false;
-    double speed = 0.0;
-    double direction = 0.0;
-    const double MaxSpeed = 10;
 
 public:
 
@@ -334,7 +330,7 @@ private:
     Road road;                  // Создаем объект дороги
     Obstacle obstacle; // Добавляем препятствие
     std::vector<House> houses;  // Вектор для хранения домов
-    bool isParking = false;  // Стоит ли машина на парковочном месте
+   // bool isParking = false;  // Стоит ли машина на парковочном месте
 
     // поворота машины пользователя
     bool usedxParLeft1[8] = { false };
@@ -535,49 +531,6 @@ public:
         return false;  // Нет коллизии
     }
 
-    // Проверка на правильность парковки
-    bool CheckCorrectParking(int number)const {
-        // Получаем координаты машины
-        double CarX = cars[number].GetX();
-        double CarY = cars[number].GetY();
-        double CarWidth = cars[number].GetWidth();
-        double CarHeight = cars[number].GetHeight();
-
-        // Получаем координаты и размеры парковочных областей
-        double xParLeft[10], xParRight[10], yPar[10];
-        MidParking(xParLeft, xParRight, yPar);
-
-        // Проверяем, что машина находится внутри пределов парковочной области
-        bool isInParkingArea = false;
-
-        // Проверка припаркована ли машина
-        for (int i = 0; i < 9; ++i) {
-            if (CarY >= yPar[i] - 25 &&
-                CarY + CarHeight <= yPar[i + 1] + PARKING_LINE_INTERVAL) {
-                if ((CarX >= xParLeft[i] - 50 &&
-                    CarX + CarWidth <=
-                    xParLeft[i + 1] + PARKING_LINE_INTERVAL) ||
-                    (CarX >= xParRight[i] - 50 &&
-                        CarX + CarWidth <=
-                        xParRight[i + 1] + PARKING_LINE_INTERVAL)) {
-                    isInParkingArea = true;
-                    break;
-                }
-            }
-        }
-        for (const auto& car : cars)
-        {
-            if (isInParkingArea && !CheckCollision(car)) {
-                return true;
-            }
-            return false;
-        }
-    }
-    // Функция линейной интерполяции
-    double Lerp(double a, double b, double t) {
-        return a + t * (b - a);
-    }
-
     void Draw(HDC hdc)const {
         parkingArea.Draw(hdc);  // Отображение парковочной площадки
         road.Draw(hdc);  // Отображение дорог
@@ -634,7 +587,7 @@ public:
                                 }
                                 X = cars[index].GetX();
                             }
-                            while (Y +20> yPar[j]) {
+                            while (Y + 20 > yPar[j]) {
 
                                 prevX = cars[index].GetX();
                                 prevY = cars[index].GetY();
@@ -654,7 +607,7 @@ public:
                             cars[index].SetisParking(true);
                             usedxParLeft1[i] = true;
                             usedyParLeft1[j] = true;
-                            MoveToParking = false;
+                            
                             break;
 
                         }
@@ -666,11 +619,11 @@ public:
                                 if (CheckCollision(cars[index])) {
                                     cars[index].Move(prevX, prevY, CarAngle, hwnd);
                                     cars[index].Move(prevX, prevY + 10, CarAngle, hwnd);
-                                    
+
                                 }
                                 X = cars[index].GetX();
                             }
-                            while (Y+20 > yPar[j]) {
+                            while (Y + 20 > yPar[j]) {
 
                                 prevX = cars[index].GetX();
                                 prevY = cars[index].GetY();
@@ -690,7 +643,7 @@ public:
                             cars[index].SetisParking(true);
                             usedxParRight1[i] = true;
                             usedyParRight1[j] = true;
-                            MoveToParking = false;
+                           
                             break;
                         }
 
@@ -711,7 +664,7 @@ public:
         int Y = cars[index].GetY();
         int prevX = cars[index].GetX();
         int prevY = cars[index].GetY();
-        
+
         double CarAngle = 0.0;
 
         double xParLeft[8] = {};
@@ -729,7 +682,7 @@ public:
                         }
                     }
                 }
-                while(X<400) {
+                while (X < 400) {
                     prevX = cars[index].GetX();
                     prevY = cars[index].GetY();
                     cars[index].Move(prevX + 10, prevY, 180, hwnd);
@@ -759,7 +712,7 @@ public:
                         }
                     }
                 }
-                while(X>600) {
+                while (X > 600) {
                     prevX = cars[index].GetX();
                     prevY = cars[index].GetY();
                     cars[index].Move(prevX - 10, prevY, 0, hwnd);
@@ -780,8 +733,8 @@ public:
                     Y = cars[index].GetY();
                 }
             }
-            
-            while(X>10) {
+
+            while (X > 10) {
                 prevX = cars[index].GetX();
                 prevY = cars[index].GetY();
                 cars[index].Move(prevX - 10, prevY, 180, hwnd);
@@ -789,7 +742,7 @@ public:
                     cars[index].Move(prevX, prevY, 180, hwnd);
                     cars[index].Move(prevX, prevY - 10, 180, hwnd);
                 }
-                X= cars[index].GetX();
+                X = cars[index].GetX();
             }
             cars.pop_back();
         }
