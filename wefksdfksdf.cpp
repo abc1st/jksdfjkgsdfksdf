@@ -10,6 +10,7 @@
 #define ID_TRACKBAR 101
 #define ID_BUTTON_PARKING 102
 #define ID_BUTTON_PARKING_EXIT 103
+#define ID_BUTTON_EXIT 104
 // Определение полного экрана
 bool fullscreen = false;
 const int MAP_LEFT_BORDER = 0;
@@ -96,7 +97,7 @@ public:
         y = newY;
         angle = newAngle;
         InvalidateRect(hwnd, NULL, TRUE);
-        Sleep(30);
+        Sleep(50);
         UpdateWindow(hwnd);
         
     }
@@ -427,6 +428,8 @@ public:
                                 i++;
                             }
                             else {
+                                usedxParLeft1[xrand] = true;
+                                usedyParLeft1[yrand] = true;
                                 cars.pop_back();
                             }
 
@@ -449,6 +452,8 @@ public:
                                 i++;
                             }
                             else {
+                                usedxParRight1[xrand] = true;
+                                usedyParRight1[yrand] = true;
                                 cars.pop_back();
                             }
                         }
@@ -587,8 +592,18 @@ public:
         int index = cars.size() - 1;
         int X = cars[index].GetX();
         int Y = cars[index].GetY();
+        int prevX = cars[index].GetX();
+        int prevY = cars[index].GetY();
         double CarAngle = 0.0;
-        if (index < 16) {
+        int randColor = RGB(rand() % 255, rand() % 255, rand() % 255);
+        cars[index].SetColor(randColor);
+        int schet = 0;
+        for (int i = 0; i < 8; i++) {
+            if (usedxParLeft1[i] && usedyParLeft1[i] || usedxParRight1[i] && usedyParRight1[i]) {
+                schet++;
+            }
+        }
+        if (index < 16&&schet<16) {
             // Массивы для хранения координат машин при парковки
             double xParLeft[8] = {};
             double xParRight[8] = {};
@@ -600,23 +615,33 @@ public:
                 for (int i = 0; i < 8; i++) {
                     for (int j = 0; j < 8; j++) {
                         if (!usedxParLeft1[i] && !usedyParLeft1[j]) {
-                            for (int i = 0; i < 55; i++) {
-                                
-                                cars[index].Move(X + 10, Y,CarAngle,hwnd);
+                            while(X+20<400) {
+                                prevX = cars[index].GetX();
+                                prevY = cars[index].GetY();
+                                cars[index].Move(prevX + 10, prevY,CarAngle,hwnd);
+                                if (CheckCollision(cars[index])) {
+                                    cars[index].Move(prevX, prevY, CarAngle, hwnd);
+                                    cars[index].Move(prevX, prevY + 10, CarAngle, hwnd);
+                                }
                                 X = cars[index].GetX();
                             }
-                            while(Y+20>yPar[j]) {
-                                
-                                
-                                cars[index].Move(X, Y - 10,180, hwnd);
+                            while(Y>yPar[j]) {
+                               
+                                prevX = cars[index].GetX();
+                                prevY = cars[index].GetY();
+                                cars[index].Move(prevX, prevY - 10,100, hwnd);
+                                if (CheckCollision(cars[index])) {
+                                    cars[index].Move(prevX, prevY, 100, hwnd);
+                                    cars[index].Move(prevX + 10, prevY, 100, hwnd);
+                                }
                                 Y = cars[index].GetY();
                             }
-                            for (int i = 0; i < 25; i++) {
+                            while(X>300) {
                                 
-                                cars[index].Move(X - 10, Y,0, hwnd);
+                                cars[index].Move(X - 10, Y,200, hwnd);
                                 X = cars[index].GetX();
                             }
-                            cars[index].Move(xParLeft[i] - 50, yPar[j] - 25, CarAngle, hwnd);
+                            cars[index].Move(xParLeft[i] - 50, yPar[j] - 25, 200, hwnd);
                             cars[index].SetisParking(true);
                             usedxParLeft1[i] = true;
                             usedyParLeft1[j] = true;
@@ -705,7 +730,7 @@ public:
             X = cars[index].GetX();
             Y = cars[index].GetY() + 10;
         }
-        for (int i = 0; i < 50; i++) {
+        for (int i = 0; i < 40; i++) {
             cars[index].Move(X - 10, Y, CarAngle, hwnd);
             X = cars[index].GetX() - 10;
             Y = cars[index].GetY();
@@ -890,7 +915,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             L"BUTTON",  // Predefined class; Unicode assumed 
             L"Parking", // Button text 
             WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,  // Styles 
-            850,         // x position 
+            800,         // x position 
             180,         // y position 
             100,        // Button width
             30,         // Button height
@@ -903,12 +928,24 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             L"BUTTON",  // Predefined class; Unicode assumed 
             L"Left Parking", // Button text 
             WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,  // Styles 
-            1050,         // x position 
+            950,         // x position 
             180,         // y position 
             100,        // Button width
             30,         // Button height
             hwnd,       // Parent window
             (HMENU)ID_BUTTON_PARKING_EXIT, // Button ID
+            GetModuleHandle(NULL),
+            NULL);      // Pointer not needed.
+        HWND hwndButtonexit = CreateWindow(
+            L"BUTTON",  // Predefined class; Unicode assumed 
+            L"Exit", // Button text 
+            WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,  // Styles 
+            1100,         // x position 
+            180,         // y position 
+            100,        // Button width
+            30,         // Button height
+            hwnd,       // Parent window
+            (HMENU)ID_BUTTON_EXIT, // Button ID
             GetModuleHandle(NULL),
             NULL);      // Pointer not needed.
         break;
@@ -927,6 +964,10 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             
             yard.exitParking(hwnd);
             InvalidateRect(hwnd, NULL, TRUE);
+            break;
+        }
+        case ID_BUTTON_EXIT: {
+            DestroyWindow(hwnd);
             break;
         }
         }
