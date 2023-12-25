@@ -946,7 +946,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 
             // Изменение количества машин на парковке
             int numCars = 0;
-
+            
             if (pos >= 8 && pos <= 16) {
                 // Меньше машин в период с 8 до 16s
                 numCars = MAX_CARS / 2;
