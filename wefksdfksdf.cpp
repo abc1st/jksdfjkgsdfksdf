@@ -20,7 +20,7 @@ const int MAP_RIGHT_BORDER = 1280;
 const int MAP_TOP_BORDER = 0;
 const int MAP_BOTTOM_BORDER = 800;
 // Максимально возможное количество машин
-int MAX_CARS = 14;
+int MAX_CARS = 15;
 bool MoveToParking = false;
 
 // Прототип функции работы с окном(для коректной работы)
@@ -101,9 +101,9 @@ public:
         y = newY;
         angle = newAngle * (M_PI / 180.0);
         InvalidateRect(hwnd, NULL, TRUE);
-        Sleep(50);
+        Sleep(20);
         UpdateWindow(hwnd);
-
+        
     }
     //Устанавливаем цвет машины
     void SetColor(COLORREF newColor) { color = newColor; }
@@ -355,7 +355,7 @@ public:
         //Генерируем возможное препядствие
         GenerateRandomObstacle();
         //Генерируем машины
-        GenerateRandomCars(MAX_CARS);
+        GenerateRandomCars(7);
 
         //Добавляем дома
         for (int i = 0; i < 5; i++) {
@@ -712,7 +712,7 @@ public:
         int Y = cars[index].GetY();
         int prevX = cars[index].GetX();
         int prevY = cars[index].GetY();
-        
+        bool tof = false;
         double CarAngle = 0.0;
 
         double xParLeft[8] = {};
@@ -722,13 +722,17 @@ public:
         if (index > 0) {
             cars[index].SetisParking(false);
             if (X < 400) {
+                tof = false;
                 for (int i = 0; i < 8; i++) {
                     for (int j = 0; j < 8; j++) {
                         if (X + 50 == xParLeft[i] && Y + 25 == yPar[j]) {
                             usedxParLeft1[i] = false;
                             usedyParLeft1[j] = false;
+                            tof = true;
+                            break;
                         }
                     }
+                    if (tof) { break; }
                 }
                 while(X<400) {
                     prevX = cars[index].GetX();
@@ -752,13 +756,17 @@ public:
                 }
             }
             else {
+                tof = false;
                 for (int i = 0; i < 8; i++) {
                     for (int j = 0; j < 8; j++) {
                         if (X + 50 == xParRight[i] && Y + 25 == yPar[j]) {
                             usedxParRight1[i] = false;
                             usedyParRight1[j] = false;
+                            tof = true;
+                            break;
                         }
                     }
+                    if (tof) { break; }
                 }
                 while(X>600) {
                     prevX = cars[index].GetX();
@@ -794,6 +802,8 @@ public:
             }
             cars.pop_back();
         }
+        InvalidateRect(hwnd, NULL, TRUE);
+        UpdateWindow(hwnd);
     }
     // --------------------------------------------------------------------------------------------------------
     void ToggleFullscreen(HWND hwnd) {
@@ -875,7 +885,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     // Обработка сообщений
     MSG msg;
     while (GetMessage(&msg, NULL, 0, 0)) {
-        TranslateMessage(&msg);
+-        TranslateMessage(&msg);
         DispatchMessage(&msg);
     }
 
@@ -907,7 +917,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
         // Создание ползунка времени
         HWND hwndTrack = CreateWindowEx(
             0,                               // no extended styles 
-            TRACKBAR_CLASS,                   // class name 
+            TRACKBAR_CLASS,                   // class name     
             L"Trackbar Control",              // title (caption) 
             WS_CHILD | WS_VISIBLE | TBS_AUTOTICKS | TBS_HORZ, // style 
             850, 10,                          // position 
@@ -1010,8 +1020,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             L"BUTTON",  // Predefined class; Unicode assumed 
             L"Start", // Button text 
             WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,  // Styles 
-            1110,         // x position 
-            200,         // y position 
+            960,         // x position 
+            140,         // y position 
             100,        // Button width
             30,         // Button height
             hwnd,       // Parent window
@@ -1046,50 +1056,39 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             COLORREF dayColor = RGB(135, 206, 235);
             COLORREF nightColor = RGB(25, 25, 112);
             COLORREF backgroundColor;
-            if (!isClicked) {
-                for (int i = 0; i < 24;i++) {
+            int ranCarSize = 3 + rand() % 20;
+                for (int i = 0; i < ranCarSize;i++) {
                     Sleep(100);
                     int PARorLEFT = rand() % 2;
                     if (PARorLEFT % 2 == 0) {
-                        yard.toParking(hwnd);
+                        
                         if (pos <= 12) {
                             // Утро и день
-                            pos = SendMessage((HWND)lParam, TBM_GETPOS, i, 0);
                             double t = pos / 12.0;  // Нормализация положения ползунка от 0 до 1
                             backgroundColor = yard.LerpColor(nightColor, dayColor, t);
                         }
                         else {
                             // Вечер и ночь
-                            pos = SendMessage((HWND)lParam, TBM_GETPOS, i, 0);
                             double t = (pos - 12) / 12.0;  // Нормализация положения ползунка от 0 до 1
                             backgroundColor = yard.LerpColor(dayColor, nightColor, t);
                         }
+                        yard.toParking(hwnd);
                     }
                     else {
-                        yard.exitParking(hwnd);
+                        
                         if (pos <= 12) {
                             // Утро и день
-                            pos = SendMessage((HWND)lParam, TBM_GETPOS, i, 0);
                             double t = pos / 12.0;  // Нормализация положения ползунка от 0 до 1
                             backgroundColor = yard.LerpColor(nightColor, dayColor, t);
                         }
                         else {
                             // Вечер и ночь
-                            pos = SendMessage((HWND)lParam, TBM_GETPOS, i, 0);
                             double t = (pos - 12) / 12.0;  // Нормализация положения ползунка от 0 до 1
                             backgroundColor = yard.LerpColor(dayColor, nightColor, t);
                         }
+                        yard.exitParking(hwnd);
                     }
                 }
-                // Изменяем текст кнопки
-                SendMessage((HWND)lParam, WM_SETTEXT, 0, (LPARAM)L"STOP");
-                isClicked = true;
-            }
-            else {
-                //Изменяем текст кнопки
-                SendMessage((HWND)lParam, WM_SETTEXT, 0, (LPARAM)L"Start");
-                isClicked = false;
-            }
         }
         }
         break;
